@@ -26,7 +26,7 @@ final class PromptManager: @unchecked Sendable {
       return
     }
 
-    guard let config = TestimonialKit.shared.config else {
+    guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
       return
     }
@@ -49,7 +49,7 @@ final class PromptManager: @unchecked Sendable {
       return
     }
 
-    guard let config = TestimonialKit.shared.config else {
+    guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
       return
     }
@@ -67,7 +67,7 @@ final class PromptManager: @unchecked Sendable {
   func logPromptDismissedAfterRating() {
     guard let currentPromptEvent else { return }
 
-    guard let config = TestimonialKit.shared.config else {
+    guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
       return
     }
@@ -85,7 +85,7 @@ final class PromptManager: @unchecked Sendable {
   func logRedirectedToStore() {
     guard let currentPromptEvent else { return }
 
-    guard let config = TestimonialKit.shared.config else {
+    guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
       return
     }
@@ -103,7 +103,7 @@ final class PromptManager: @unchecked Sendable {
   func logStoreReviewSkipped() {
     guard let currentPromptEvent else { return }
 
-    guard let config = TestimonialKit.shared.config else {
+    guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
       return
     }
@@ -121,7 +121,7 @@ final class PromptManager: @unchecked Sendable {
   func logUserFeedback(rating: Int, comment: String?) {
     guard let currentPromptEvent else { return }
 
-    guard let config = TestimonialKit.shared.config else {
+    guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
       return
     }
@@ -139,7 +139,7 @@ final class PromptManager: @unchecked Sendable {
   func promptForReviewIfPossible(metadata: [String: String]? = nil) {
     self.promptMetadata = metadata
 
-    guard let config = TestimonialKit.shared.config else {
+    guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
       return
     }
@@ -166,6 +166,7 @@ final class PromptManager: @unchecked Sendable {
       }
 
       currentEligibility = response
+      currentFeedbackResponse = nil
 
       if response.eligible {
         Task {
@@ -199,10 +200,6 @@ final class PromptManager: @unchecked Sendable {
         currentEligibility = nil
         currentPromptEvent = nil
         promptMetadata = nil
-      }
-
-      if response.status == .promptDismissedAfterRating {
-        currentFeedbackResponse = nil
       }
 
       print("[PromptManager] Prompt event logged", response.status.rawValue)

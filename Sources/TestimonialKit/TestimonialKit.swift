@@ -1,67 +1,28 @@
 import UIKit
 import Combine
 
-public class TestimonialKit: @unchecked Sendable {
-  private var cancellables = Set<AnyCancellable>()
-  public static let shared = TestimonialKit()
-  var config: TestimonialKitConfig!
-  private let responseHandler = QueueResponseHandler()
-  private let promptManager = PromptManager.shared
-
+public class TestimonialKit {
   private init() {}
 
-  public func setup(with apiKey: String) {
-    let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
-    let countryCode = Locale.current.regionCode ?? "unknown"
-    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
-    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-    let appVersion = "\(version) (\(build))"
-
-    config = TestimonialKitConfig(apiKey: apiKey,
-                                  bundleId: bundleId,
-                                  userId: Storage.internalUserId,
-                                  appVersion: appVersion,
-                                  countryCode: countryCode)
-    configure(config: config)
-    RequestQueue.shared.enqueue(
-      APIClient.shared.initSdk(config: config)
-    )
+  public static func setup(with apiKey: String) {
+    TestimonialKitManager.shared.setup(with: apiKey)
   }
 
-  public func trackEvent(
+  public static func trackEvent(
     name: String,
     score: Int,
     type: AppEventType = .positive,
     metadata: [String: String]? = nil
   ) {
-    guard let config = config else {
-      print("[Event Tracking] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendAppEvent(
-        name: name,
-        score: score,
-        type: type,
-        metadata: metadata,
-        config: config
-      )
-    )
+    TestimonialKitManager.shared.trackEvent(name: name, score: score, type: type, metadata: metadata)
   }
 
-  public func promptIfPossible(metadata: [String: String]? = nil) {
-    guard let config = config else { return }
-
-    promptManager.promptForReviewIfPossible(metadata: metadata)
+  public static func promptIfPossible(metadata: [String: String]? = nil) {
+    TestimonialKitManager.shared.promptIfPossible(metadata: metadata)
   }
 
   @MainActor
   public func showProptUI() {
-    promptManager.showPrompt()
-  }
-
-  func configure(config: TestimonialKitConfig) {
-    RequestQueue.shared.configure(config: config)
+    TestimonialKitManager.shared.showProptUI()
   }
 }
