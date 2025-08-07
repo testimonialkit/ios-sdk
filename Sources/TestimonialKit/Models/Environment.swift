@@ -1,3 +1,3 @@
-public enum Environment: String, Codable {
+public enum AppEnvironment: String, Codable {
   case production, staging, development
 }
