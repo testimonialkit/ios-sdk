@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F8FF85AD2E4519EB009BD7C6 /* ios in Frameworks */ = {isa = PBXBuildFile; productRef = F8FF85AC2E4519EB009BD7C6 /* ios */; };
+		F8FF85BE2E451B7B009BD7C6 /* TestimonialKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8FF85BD2E451B7B009BD7C6 /* TestimonialKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F8FF85AD2E4519EB009BD7C6 /* ios in Frameworks */,
+				F8FF85BE2E451B7B009BD7C6 /* TestimonialKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,7 +70,7 @@
 			);
 			name = "ios-demo";
 			packageProductDependencies = (
-				F8FF85AC2E4519EB009BD7C6 /* ios */,
+				F8FF85BD2E451B7B009BD7C6 /* TestimonialKit */,
 			);
 			productName = "ios-demo";
 			productReference = F8FF859C2E4519D4009BD7C6 /* ios-demo.app */;
@@ -101,7 +101,7 @@
 			mainGroup = F8FF85932E4519D4009BD7C6;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F8FF85AB2E4519EB009BD7C6 /* XCLocalSwiftPackageReference "../../ios-sdk" */,
+				F8FF85BC2E451B7B009BD7C6 /* XCLocalSwiftPackageReference "../../ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F8FF859D2E4519D4009BD7C6 /* Products */;
@@ -281,10 +281,11 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = 1;
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
@@ -320,10 +321,11 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = 1;
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;
@@ -352,16 +354,16 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F8FF85AB2E4519EB009BD7C6 /* XCLocalSwiftPackageReference "../../ios-sdk" */ = {
+		F8FF85BC2E451B7B009BD7C6 /* XCLocalSwiftPackageReference "../../ios-sdk" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../ios-sdk";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		F8FF85AC2E4519EB009BD7C6 /* ios */ = {
+		F8FF85BD2E451B7B009BD7C6 /* TestimonialKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = ios;
+			productName = TestimonialKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

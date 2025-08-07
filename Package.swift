@@ -4,21 +4,26 @@
 import PackageDescription
 
 let package = Package(
-    name: "ios",
-    platforms: [
-        .iOS("15.0") // ✅ specify the minimum iOS version
-    ],
-    products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
-        .library(
-            name: "ios",
-            targets: ["ios"]),
-    ],
-    targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .target(
-            name: "ios"),
-
-    ]
+  name: "TestimonialKit",
+  platforms: [
+    .iOS("15.0") // ✅ specify the minimum iOS version
+  ],
+  products: [
+    // Products define the executables and libraries a package produces, making them visible to other packages.
+    .library(
+      name: "TestimonialKit",
+      targets: ["TestimonialKit"]
+    ),
+  ],
+  targets: [
+    // Targets are the basic building blocks of a package, defining a module or a test suite.
+    .target(
+      name: "TestimonialKit",
+      linkerSettings: [
+        .linkedFramework("UIKit"),
+        .linkedFramework("SwiftUI"),
+        .linkedFramework("Combine")
+      ]
+    ),
+  ]
 )

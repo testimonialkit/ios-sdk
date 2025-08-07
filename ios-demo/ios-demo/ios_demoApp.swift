@@ -6,12 +6,16 @@
 //
 
 import SwiftUI
+import TestimonialKit
 
 @main
 struct ios_demoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+            .onAppear {
+              TestimonialKit.shared.setup(with: "tk_pub_b8e586d674610dabf398c7f7af24ba18")
+            }
         }
     }
 }
