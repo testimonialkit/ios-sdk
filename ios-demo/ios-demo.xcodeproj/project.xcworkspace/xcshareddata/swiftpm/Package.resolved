@@ -1,0 +1,15 @@
+{
+  "originHash" : "43bf599907947ca48b21346ba476c3817b8ed91a3135d5ba64f357667d3e44ca",
+  "pins" : [
+    {
+      "identity" : "swift-theme-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Charlyk/swift-theme-kit.git",
+      "state" : {
+        "revision" : "d81bac4144e7f0a94969ed17a250fc0862de1340",
+        "version" : "1.0.4"
+      }
+    }
+  ],
+  "version" : 3
+}

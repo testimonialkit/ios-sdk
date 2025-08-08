@@ -15,10 +15,16 @@ let package = Package(
       targets: ["TestimonialKit"]
     ),
   ],
+  dependencies: [
+    .package(url: "https://github.com/Charlyk/swift-theme-kit.git", from: "1.0.4")
+  ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
     .target(
       name: "TestimonialKit",
+      dependencies: [
+        .product(name: "SwiftThemeKit", package: "swift-theme-kit"),
+      ],
       linkerSettings: [
         .linkedFramework("UIKit"),
         .linkedFramework("SwiftUI"),
