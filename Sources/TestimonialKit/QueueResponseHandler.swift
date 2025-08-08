@@ -28,6 +28,7 @@ final class QueueResponseHandler {
       if let response = try? JSONDecoder().decode(SDKInitResponse.self, from: data) {
         Storage.internalUserId = response.userId
         Storage.requestCommentOnPositiveRating = response.requestCommentOnPositiveRating
+        TestimonialKitManager.shared.config.userId = response.userId
         print("★ TestimonialKit initialized successfully ★")
       }
     case .sendEvent:
