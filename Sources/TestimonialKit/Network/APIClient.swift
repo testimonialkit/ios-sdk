@@ -91,6 +91,7 @@ class APIClient: @unchecked Sendable {
   func sendPromptEvent(
     type: PromptEventType,
     previousEventId: String,
+    feedbackEventId: String? = nil,
     config: TestimonialKitConfig,
     metadata: [String: String]? = nil
   ) -> QueuedRequest {
@@ -98,7 +99,8 @@ class APIClient: @unchecked Sendable {
       "userId": config.userId,
       "status": type.rawValue,
       "previousEventId": previousEventId,
-      "appVersion": config.appVersion
+      "appVersion": config.appVersion,
+      "feedbackEventId": feedbackEventId
     ]
 
     if let metadata {

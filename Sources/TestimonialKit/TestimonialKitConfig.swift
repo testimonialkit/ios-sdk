@@ -3,7 +3,7 @@ import Foundation
 class TestimonialKitConfig {
   let apiKey: String
   let bundleId: String
-  let userId: String
+  var userId: String
   let appVersion: String
   let countryCode: String
   let platform: String = "ios"

@@ -9,6 +9,7 @@ final class PromptManager: @unchecked Sendable {
   private var currentEligibility: PromptEligibilityResponse?
   private var currentPromptEvent: PromptEventLogResponse?
   private var currentFeedbackResponse: FeedbackLogResponse?
+  private var feedbackEventRegistered: Bool = false
   private weak var presentedPromptVC: UIViewController?
 
   private init() {
@@ -44,7 +45,7 @@ final class PromptManager: @unchecked Sendable {
   func logPromptDismissed() {
     guard let currentPromptEvent else { return }
 
-    if currentFeedbackResponse != nil {
+    if currentFeedbackResponse != nil || feedbackEventRegistered  {
       logPromptDismissedAfterRating()
       return
     }
@@ -65,7 +66,7 @@ final class PromptManager: @unchecked Sendable {
   }
 
   func logPromptDismissedAfterRating() {
-    guard let currentPromptEvent else { return }
+    guard let currentFeedbackResponse, let currentPromptEvent, feedbackEventRegistered else { return }
 
     guard let config = TestimonialKitManager.shared.config else {
       print("[Prompt] SDK is not configured.")
@@ -76,10 +77,13 @@ final class PromptManager: @unchecked Sendable {
       APIClient.shared.sendPromptEvent(
         type: .promptDismissedAfterRating,
         previousEventId: currentPromptEvent.eventId,
+        feedbackEventId: currentFeedbackResponse.eventId,
         config: config,
         metadata: promptMetadata
       )
     )
+
+    feedbackEventRegistered = false
   }
 
   func logRedirectedToStore() {
@@ -134,6 +138,8 @@ final class PromptManager: @unchecked Sendable {
         config: config
       )
     )
+
+    feedbackEventRegistered = true
   }
 
   func promptForReviewIfPossible(metadata: [String: String]? = nil) {
@@ -219,6 +225,7 @@ final class PromptManager: @unchecked Sendable {
       }
 
       currentFeedbackResponse = response
+      logPromptDismissedAfterRating()
 
       print("[PromptManager] Feedback event logged")
     case .failure(let error):
