@@ -1,49 +1,86 @@
 import SwiftUI
+import SwiftThemeKit
 
 struct PromptView: View {
-  let promptText: String
-
-  @State private var rating: Int = 0
-  @State private var comment: String = ""
-
-  var onSubmit: ((Int, String?) -> Void)?
-  var onDismiss: (() -> Void)?
+  let config: PromptConfig
+  @Environment(\.appTheme) var appTheme
+  @StateObject private var viewModel = PromptViewModel()
 
   var body: some View {
-    VStack(spacing: 20) {
-      Text(promptText)
-        .font(.headline)
-
-      Picker("Rating", selection: $rating) {
-        ForEach(1..<6) { Text("\($0)").tag(Optional($0)) }
+    ThemeProvider(
+      light: .defaultLight.copy(
+        colors: .defaultLight.copy(
+          primary: config.tintColor
+        )
+      ),
+      dark: .defaultDark.copy(
+        colors: .defaultDark.copy(
+          primary: config.tintColorDark
+        ),
+        buttons: .defaultDark.copy(
+          shape: config.submitButton.shape,
+          size: config.submitButton.size,
+          variant: config.submitButton.variant
+        ),
+        textFields: ThemeTextFieldDefaults(
+          shape: config.commentField.shape,
+          size: config.commentField.size,
+          variant: config.commentField.variant
+        )
+      )
+    ) {
+      ZStack {
+        switch viewModel.state {
+        case .rating:
+          PromptRatingView(
+            rating: $viewModel.rating,
+            title: config.strings.ratingTitle,
+            subtitle: config.strings.ratingSubtitle,
+            submitTitle: config.strings.ratingSubmitButtonTitle,
+            dismissTitle: config.strings.ratingCancelButtonTitle,
+            isLoading: viewModel.isLoading,
+            onSubmit: {
+              viewModel.handleSubmit()
+            },
+            onDissmiss: {
+              viewModel.handleDismiss()
+            }
+          )
+          .transition(.opacity)
+        case .comment:
+          PromptCommentView(
+            comment: $viewModel.comment,
+            title: config.strings.commentTitle,
+            subtitle: config.strings.commentSubtitle,
+            placeholder: config.strings.commentPlaceholder,
+            submitTitle: config.strings.commentSubmitButtonTitle,
+            dismissTitle: config.strings.commentCancelButtonTitle,
+            isLoading: viewModel.isLoading,
+            onSubmit: {
+              viewModel.handleSubmit()
+            },
+            onDissmiss: {
+              viewModel.handleDismiss()
+            }
+          )
+          .transition(.opacity)
+        case .storeReview:
+          EmptyView()
+            .transition(.opacity)
+        }
       }
-      .pickerStyle(.segmented)
-
-      TextField("Optional comment", text: $comment)
-        .textFieldStyle(.roundedBorder)
-
-      Button("Submit") {
-        onSubmit?(rating + 1, comment.isEmpty ? nil : comment)
+      .animation(.easeInOut(duration: 0.25), value: viewModel.state)
+      .onAppear {
+        PromptManager.shared.logPromptShown()
       }
-
-      Button("Dismiss") {
-        PromptManager.shared.dismissPrompt()
+      .onDisappear {
+        PromptManager.shared.logPromptDismissed()
       }
-      .foregroundColor(.red)
-    }
-    .padding()
-    .onAppear {
-      PromptManager.shared.logPromptShown()
-    }
-    .onDisappear {
-      PromptManager.shared.logPromptDismissed()
+      .padding(16)
     }
   }
 }
 
 #Preview {
-  PromptView(
-    promptText: "Some test") { rating, comment in
-      
-    }
+  PromptView(config: PromptConfig())
 }

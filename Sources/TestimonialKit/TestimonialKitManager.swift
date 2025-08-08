@@ -48,10 +48,10 @@ public class TestimonialKitManager: @unchecked Sendable {
     )
   }
 
-  func promptIfPossible(metadata: [String: String]? = nil) {
+  func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig) {
     guard let config = config else { return }
 
-    promptManager.promptForReviewIfPossible(metadata: metadata)
+    promptManager.promptForReviewIfPossible(metadata: metadata, config: promptConfig)
   }
 
   @MainActor

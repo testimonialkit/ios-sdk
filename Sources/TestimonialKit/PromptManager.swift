@@ -11,6 +11,8 @@ final class PromptManager: @unchecked Sendable {
   private var currentFeedbackResponse: FeedbackLogResponse?
   private var feedbackEventRegistered: Bool = false
   private weak var presentedPromptVC: UIViewController?
+  private var currentPromptConfig: PromptConfig = PromptConfig()
+  let feedbackEventPublisher = PassthroughSubject<FeedbackEvent, Never>()
 
   private init() {
     RequestQueue.shared.eventPublisher
@@ -122,7 +124,7 @@ final class PromptManager: @unchecked Sendable {
     )
   }
 
-  func logUserFeedback(rating: Int, comment: String?) {
+  func logUserFeedback(rating: Int, comment: String? = nil) {
     guard let currentPromptEvent else { return }
 
     guard let config = TestimonialKitManager.shared.config else {
@@ -142,7 +144,25 @@ final class PromptManager: @unchecked Sendable {
     feedbackEventRegistered = true
   }
 
-  func promptForReviewIfPossible(metadata: [String: String]? = nil) {
+  func logUserComment(comment: String?) {
+    guard let currentFeedbackResponse else { return }
+
+    guard let config = TestimonialKitManager.shared.config else {
+      print("[Prompt] SDK is not configured.")
+      return
+    }
+
+    RequestQueue.shared.enqueue(
+      APIClient.shared.sendFeedbackComment(
+        comment: comment,
+        feedbackEventId: currentFeedbackResponse.eventId,
+        config: config
+      )
+    )
+  }
+
+  func promptForReviewIfPossible(metadata: [String: String]? = nil, config: PromptConfig) {
+    self.currentPromptConfig = config
     self.promptMetadata = metadata
 
     guard let config = TestimonialKitManager.shared.config else {
@@ -208,7 +228,7 @@ final class PromptManager: @unchecked Sendable {
         promptMetadata = nil
       }
 
-      print("[PromptManager] Prompt event logged", response.status.rawValue)
+      print("[PromptManager] Prompt event logged:", response.status.rawValue)
     case .failure(let error):
       print("[PromptManager] Eligibility request failed:", error)
     }
@@ -225,16 +245,42 @@ final class PromptManager: @unchecked Sendable {
       }
 
       currentFeedbackResponse = response
-      logPromptDismissedAfterRating()
 
       print("[PromptManager] Feedback event logged")
+
+      feedbackEventPublisher.send(
+        FeedbackEvent(type: .rating, response: response)
+      )
     case .failure(let error):
       print("[PromptManager] Feedback request failed:", error)
     }
   }
 
+  private func handleCommentEventResult(_ event: QueuedRequestResult) {
+    guard event.eventType == .sendFeedbackComment else { return }
+
+    switch event.result {
+    case .success(let result):
+      guard let response = try? JSONDecoder().decode(FeedbackLogResponse.self, from: result) else {
+        print("[PromptManager] Failed to decode event result")
+        return
+      }
+
+      print("[PromptManager] Comment saved successfully")
+      
+      if let currentFeedbackResponse {
+        feedbackEventPublisher.send(
+          FeedbackEvent(type: .comment, response: currentFeedbackResponse)
+        )
+      }
+    case .failure(let error):
+      print("[PromptManager] Comment request failed:", error)
+    }
+  }
+
   @MainActor
-  func dismissPrompt(afterRating: Bool = false) {
+  func dismissPrompt() {
+    logPromptDismissed()
     presentedPromptVC?.dismiss(animated: true)
     presentedPromptVC = nil
   }
@@ -246,13 +292,8 @@ final class PromptManager: @unchecked Sendable {
       return
     }
 
-    let swiftUIView = PromptView(promptText: "Some prompt text") { [weak self] rating, comment in
-      self?.logUserFeedback(rating: rating, comment: (comment?.isEmpty ?? true) ? nil : comment)
-      self?.dismissPrompt(afterRating: true)
-    }
-
-    let hostingVC = UIHostingController(rootView: swiftUIView)
-    hostingVC.modalPresentationStyle = .pageSheet
+    let swiftUIView = PromptView(config: currentPromptConfig)
+    let hostingVC = PromptViewController(rootView: swiftUIView)
     presenter.present(hostingVC, animated: true)
     presentedPromptVC = hostingVC
   }

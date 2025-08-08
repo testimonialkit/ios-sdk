@@ -157,6 +157,26 @@ class APIClient: @unchecked Sendable {
     )
   }
 
+  func sendFeedbackComment(comment: String?, feedbackEventId: String, config: TestimonialKitConfig) -> QueuedRequest {
+    var body: [String: Any] = [
+      "comment": comment,
+      "feedbackEventId": feedbackEventId
+    ]
+
+    return QueuedRequest(
+      eventType: .sendFeedbackComment,
+      method: "PUT",
+      path: "/sdk/feedback",
+      headers: [
+        Headers.apiKey.rawValue: config.apiKey,
+        Headers.bundleId.rawValue: config.bundleId,
+        Headers.platform.rawValue: config.platform,
+        Headers.contentType.rawValue: "application/json"
+      ],
+      body: try? JSONSerialization.data(withJSONObject: body, options: [])
+    )
+  }
+
   func execute(queuedRequest: QueuedRequest) async throws -> Data {
     var request = buildRequest(to: queuedRequest.path)
     request.httpMethod = queuedRequest.method

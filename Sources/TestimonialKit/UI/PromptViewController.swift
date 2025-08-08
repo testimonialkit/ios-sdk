@@ -1,38 +1,61 @@
-import UIKit
+import SwiftUI
 
-class PromptViewController: UIViewController {
-  private let promptText: String
-
-  init(promptText: String) {
-    self.promptText = promptText
-    super.init(nibName: nil, bundle: nil)
-    modalPresentationStyle = .formSheet
-  }
-
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-
+class PromptViewController<Content: View>: UIHostingController<Content> {
   override func viewDidLoad() {
     super.viewDidLoad()
-    view.backgroundColor = .systemBackground
 
-    let label = UILabel()
-    label.text = promptText
-    label.textAlignment = .center
-    label.numberOfLines = 0
-    label.translatesAutoresizingMaskIntoConstraints = false
+    guard let sheet = presentationController as? UISheetPresentationController else { return }
 
-    view.addSubview(label)
-    NSLayoutConstraint.activate([
-      label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-      label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-      label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
-    ])
+    if #available(iOS 16.0, *) {
+      let contentDetent = UISheetPresentationController.Detent.custom(
+        identifier: UISheetPresentationController.Detent.Identifier("contentHeight")
+      ) { [weak self] context in
+        guard let self = self else { return 0 }
+
+        // Determine the width to measure against:
+        // - Prefer current view width minus safe area insets
+        // - Fallback to the screen width if the view hasn't laid out yet
+        let insets = self.view.safeAreaInsets
+        let measuredViewWidth = self.view.bounds.width - (insets.left + insets.right)
+        let width = measuredViewWidth > 0 ? measuredViewWidth : UIScreen.main.bounds.width
+
+        // Ask the hosting controller to size the SwiftUI content at this width
+        let fitting = CGSize(width: width, height: .greatestFiniteMagnitude)
+        let measuredHeight = self.sizeThatFits(in: fitting).height
+
+        // Clamp to system-allowed maximum
+        return min(max(0, measuredHeight), context.maximumDetentValue)
+      }
+
+      sheet.detents = [contentDetent]
+      sheet.selectedDetentIdentifier = contentDetent.identifier
+      sheet.prefersGrabberVisible = true
+      sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+    } else {
+      // iOS 15 fallback: custom detents are unavailable.
+      sheet.detents = [.large()]
+    }
   }
-}
 
-protocol PromptViewControllerDelegate: AnyObject {
-  func promptDidDismiss()
-  func didSubmitFeedback(rating: Int, comment: String?)
+  // Keep the detent in sync when layout/safe areas/content change.
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    if #available(iOS 16.0, *),
+       let sheet = presentationController as? UISheetPresentationController {
+      sheet.invalidateDetents()
+    }
+  }
+
+  // Handle rotations/size changes without rebuilding the detents.
+  override func viewWillTransition(to size: CGSize,
+                                   with coordinator: UIViewControllerTransitionCoordinator) {
+    super.viewWillTransition(to: size, with: coordinator)
+    coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+      if #available(iOS 16.0, *),
+         let sheet = self?.presentationController as? UISheetPresentationController {
+        sheet.invalidateDetents()
+      }
+    }
+  }
+
 }

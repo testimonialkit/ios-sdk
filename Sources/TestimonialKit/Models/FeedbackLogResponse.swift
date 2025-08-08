@@ -6,6 +6,7 @@ struct FeedbackLogResponse: Decodable {
   let redirectMode: StoreRedirectMode
   let redirectAutomatically: Bool
   let isPositiveRating: Bool
+  let requestComment: Bool
 }
 
 enum StoreRedirectMode: String, Codable {

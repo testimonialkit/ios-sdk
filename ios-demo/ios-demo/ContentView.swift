@@ -1,5 +1,6 @@
 import SwiftUI
 import TestimonialKit
+import SwiftThemeKit
 
 struct ContentView: View {
   var body: some View {
@@ -10,7 +11,12 @@ struct ContentView: View {
       Text("Hello, world!")
 
       Button("Prompt if possible") {
-        TestimonialKit.promptIfPossible()
+        TestimonialKit.promptIfPossible(promptConfig: .defaultConfig.copy(
+          submitButton: .init(shape: .square),
+          commentField: .init(shape: .square),
+          tintColor: .black,
+          tintColorDark: .white,
+        ))
       }
 
       Button("Track custom event") {

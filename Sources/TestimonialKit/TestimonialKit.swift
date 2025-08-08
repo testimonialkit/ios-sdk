@@ -17,8 +17,8 @@ public class TestimonialKit {
     TestimonialKitManager.shared.trackEvent(name: name, score: score, type: type, metadata: metadata)
   }
 
-  public static func promptIfPossible(metadata: [String: String]? = nil) {
-    TestimonialKitManager.shared.promptIfPossible(metadata: metadata)
+  public static func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig = PromptConfig()) {
+    TestimonialKitManager.shared.promptIfPossible(metadata: metadata, promptConfig: promptConfig)
   }
 
   @MainActor
