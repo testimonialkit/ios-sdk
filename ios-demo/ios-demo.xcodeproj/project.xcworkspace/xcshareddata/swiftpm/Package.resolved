@@ -1,6 +1,15 @@
 {
-  "originHash" : "43bf599907947ca48b21346ba476c3817b8ed91a3135d5ba64f357667d3e44ca",
+  "originHash" : "0a7d40c27d3f2b539e11790ab15461acd7d2898617693c7786cf3da0b718b9ea",
   "pins" : [
+    {
+      "identity" : "factory",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hmlongco/Factory.git",
+      "state" : {
+        "revision" : "ccc898f21992ebc130bc04cc197460a5ae230bcf",
+        "version" : "2.5.3"
+      }
+    },
     {
       "identity" : "swift-theme-kit",
       "kind" : "remoteSourceControl",

@@ -1,8 +1,10 @@
 import SwiftUI
+import Factory
 import SwiftThemeKit
 
 struct PromptView: View {
   let config: PromptConfig
+  @Injected(\.promptManager) var promptManager
   @Environment(\.appTheme) var appTheme
   @StateObject private var viewModel = PromptViewModel()
 
@@ -10,7 +12,17 @@ struct PromptView: View {
     ThemeProvider(
       light: .defaultLight.copy(
         colors: .defaultLight.copy(
-          primary: config.tintColor
+          primary: config.tintColorDark
+        ),
+        buttons: .defaultLight.copy(
+          shape: config.submitButton.shape,
+          size: config.submitButton.size,
+          variant: config.submitButton.variant
+        ),
+        textFields: ThemeTextFieldDefaults(
+          shape: config.commentField.shape,
+          size: config.commentField.size,
+          variant: config.commentField.variant
         )
       ),
       dark: .defaultDark.copy(
@@ -64,10 +76,10 @@ struct PromptView: View {
       }
       .animation(.easeInOut(duration: 0.25), value: viewModel.state)
       .onAppear {
-        PromptManager.shared.logPromptShown()
+        promptManager.logPromptShown()
       }
       .onDisappear {
-        PromptManager.shared.logPromptDismissed()
+        promptManager.logPromptDismissed()
       }
       .padding(16)
     }

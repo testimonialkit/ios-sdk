@@ -1,6 +1,7 @@
 import Foundation
+import Factory
 
-struct QueuedRequest: Codable {
+struct QueuedRequest: Codable, Sendable {
   let method: String
   let path: String
   let headers: [String: String]
@@ -26,7 +27,8 @@ struct QueuedRequest: Codable {
   }
 
   func execute() async throws -> Data {
-    try await APIClient.shared.execute(queuedRequest: self)
+    let apiClient = resolve(\.apiClient)
+    return try await apiClient.execute(queuedRequest: self)
   }
 
   func copy(
