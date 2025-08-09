@@ -5,20 +5,23 @@ public struct PromptConfig {
   @MainActor
   public static let defaultConfig: PromptConfig = .init()
 
-  var strings: Strings
+  var ratingStrings: RatingStrings
+  var commentStrings: CommentStrings
   var commentField: PromptConfig.TextField
   var submitButton: PromptConfig.Button
   var tintColor: Color
   var tintColorDark: Color
 
   public init(
-    strings: Strings = .init(),
+    ratingStrings: RatingStrings = .init(),
+    commentStrings: CommentStrings = .init(),
     submitButton: PromptConfig.Button = .init(),
     commentField: PromptConfig.TextField = .init(),
     tintColor: Color = .blue,
     tintColorDark: Color = .blue
   ) {
-    self.strings = strings
+    self.ratingStrings = ratingStrings
+    self.commentStrings = commentStrings
     self.commentField = commentField
     self.submitButton = submitButton
     self.tintColor = tintColor
@@ -26,14 +29,16 @@ public struct PromptConfig {
   }
 
   public func copy(
-    strings: Strings? = nil,
+    ratingStrings: RatingStrings? = nil,
+    commentStrings: CommentStrings? = nil,
     submitButton: PromptConfig.Button? = nil,
     commentField: PromptConfig.TextField? = nil,
     tintColor: Color? = nil,
     tintColorDark: Color? = nil,
   ) -> PromptConfig {
     return PromptConfig(
-      strings: strings ?? self.strings,
+      ratingStrings: ratingStrings ?? self.ratingStrings,
+      commentStrings: commentStrings ?? self.commentStrings,
       submitButton: submitButton ?? self.submitButton,
       commentField: commentField ?? self.commentField,
       tintColor: tintColor ?? self.tintColor,
@@ -73,38 +78,44 @@ public struct PromptConfig {
     }
   }
 
-  public struct Strings {
-    var ratingTitle: String = "Rate this app"
-    var ratingSubtitle: String = "Your feedback is precious to us."
-    var ratingSubmitButtonTitle: String = "Submit"
-    var ratingCancelButtonTitle: String = "Maybe later"
-
-    var commentTitle: String = "Leave a comment"
-    var commentSubtitle: String = "We value your honest opinion."
-    var commentPlaceholder: String = "Type your comment here..."
-    var commentSubmitButtonTitle: String = "Submit"
-    var commentCancelButtonTitle: String = "Maybe later"
+  public struct RatingStrings {
+    var title: String
+    var subtitle: String
+    var submitButtonTitle: String
+    var cancelButtonTitle: String
 
     public init(
-      ratingTitle: String = "Rate this app",
-      ratingSubtitle: String = "Your feedback is precious to us.",
-      ratingSubmitButtonTitle: String = "Submit",
-      ratingCancelButtonTitle: String = "Maybe later",
-      commentTitle: String = "Leave a comment",
-      commentSubtitle: String = "We value your honest opinion.",
-      commentPlaceholder: String = "Type your comment here...",
-      commentSubmitButtonTitle: String = "Submit",
-      commentCancelButtonTitle: String = "Maybe later"
+      title: String = "Rate this app",
+      subtitle: String = "Your feedback is precious to us.",
+      submitButtonTitle: String = "Submit",
+      cancelButtonTitle: String = "Maybe later"
     ) {
-      self.ratingTitle = ratingTitle
-      self.ratingSubtitle = ratingSubtitle
-      self.ratingSubmitButtonTitle = ratingSubmitButtonTitle
-      self.ratingCancelButtonTitle = ratingCancelButtonTitle
-      self.commentTitle = commentTitle
-      self.commentSubtitle = commentSubtitle
-      self.commentPlaceholder = commentPlaceholder
-      self.commentSubmitButtonTitle = commentSubmitButtonTitle
-      self.commentCancelButtonTitle = commentCancelButtonTitle
+      self.title = title
+      self.subtitle = subtitle
+      self.submitButtonTitle = submitButtonTitle
+      self.cancelButtonTitle = cancelButtonTitle
+    }
+  }
+
+  public struct CommentStrings {
+    var title: String
+    var subtitle: String
+    var placeholder: String
+    var submitButtonTitle: String
+    var cancelButtonTitle: String
+
+    public init(
+      title: String = "Leave a comment",
+      subtitle: String = "We value your honest opinion.",
+      placeholder: String = "Type your comment here...",
+      submitButtonTitle: String = "Submit",
+      cancelButtonTitle: String = "Maybe later"
+    ) {
+      self.title = title
+      self.subtitle = subtitle
+      self.placeholder = placeholder
+      self.submitButtonTitle = submitButtonTitle
+      self.cancelButtonTitle = cancelButtonTitle
     }
   }
 }

@@ -34,10 +34,7 @@ struct PromptView: View {
         case .rating:
           PromptRatingView(
             rating: $viewModel.rating,
-            title: config.strings.ratingTitle,
-            subtitle: config.strings.ratingSubtitle,
-            submitTitle: config.strings.ratingSubmitButtonTitle,
-            dismissTitle: config.strings.ratingCancelButtonTitle,
+            strings: config.ratingStrings,
             isLoading: viewModel.isLoading,
             onSubmit: {
               viewModel.handleSubmit()
@@ -50,11 +47,7 @@ struct PromptView: View {
         case .comment:
           PromptCommentView(
             comment: $viewModel.comment,
-            title: config.strings.commentTitle,
-            subtitle: config.strings.commentSubtitle,
-            placeholder: config.strings.commentPlaceholder,
-            submitTitle: config.strings.commentSubmitButtonTitle,
-            dismissTitle: config.strings.commentCancelButtonTitle,
+            strings: config.commentStrings,
             isLoading: viewModel.isLoading,
             onSubmit: {
               viewModel.handleSubmit()
