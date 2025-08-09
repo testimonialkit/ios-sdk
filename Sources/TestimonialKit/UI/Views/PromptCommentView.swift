@@ -4,11 +4,7 @@ import SwiftThemeKit
 struct PromptCommentView: View {
   @Environment(\.appTheme) var appTheme
   @Binding var comment: String
-  var title: String = ""
-  var subtitle: String = ""
-  var placeholder: String = ""
-  var submitTitle: String = "Submit"
-  var dismissTitle: String = "Cancel"
+  var strings: PromptConfig.CommentStrings
   var isLoading: Bool = false
   var onSubmit: () -> Void
   var onDissmiss: () -> Void
@@ -16,21 +12,21 @@ struct PromptCommentView: View {
   var body: some View {
     VStack(spacing: 40) {
       PromptHeader(
-        title: title,
-        subtitle: subtitle
+        title: strings.title,
+        subtitle: strings.subtitle
       )
 
       Group {
         if #available(iOS 16.0, *) {
           // Multiline TextField (keeps your TextField-based styles)
-          TextField(placeholder, text: $comment, axis: .vertical)
+          TextField(strings.placeholder, text: $comment, axis: .vertical)
             .applyThemeTextFieldStyle()
             .lineLimit(3...6) // grows up to 6 lines
         } else {
           // Fallback: TextEditor (apply simple styling)
           ZStack(alignment: .topLeading) {
             if comment.isEmpty {
-              Text(placeholder)
+              Text(strings.placeholder)
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -56,7 +52,7 @@ struct PromptCommentView: View {
               .frame(maxWidth: .infinity)
               .scaleEffect(0.8)
           } else {
-            Text(submitTitle)
+            Text(strings.submitButtonTitle)
               .frame(maxWidth: .infinity)
           }
         }
@@ -67,7 +63,7 @@ struct PromptCommentView: View {
         Button {
           onDissmiss()
         } label: {
-          Text(dismissTitle)
+          Text(strings.cancelButtonTitle)
         }
         .disabled(isLoading)
         .plainTextButton(.bodySmall)

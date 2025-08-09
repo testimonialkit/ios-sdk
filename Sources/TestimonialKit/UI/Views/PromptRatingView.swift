@@ -4,10 +4,7 @@ import SwiftThemeKit
 struct PromptRatingView: View {
   @Environment(\.appTheme) var appTheme
   @Binding var rating: Int
-  var title: String = ""
-  var subtitle: String = ""
-  var submitTitle: String = "Submit"
-  var dismissTitle: String = "Cancel"
+  var strings: PromptConfig.RatingStrings
   var isLoading: Bool = false
   var onSubmit: () -> Void
   var onDissmiss: () -> Void
@@ -15,8 +12,8 @@ struct PromptRatingView: View {
   var body: some View {
     VStack(spacing: 40) {
       PromptHeader(
-        title: title,
-        subtitle: subtitle
+        title: strings.title,
+        subtitle: strings.subtitle
       )
 
       RatingPicker(rating: $rating)
@@ -30,7 +27,7 @@ struct PromptRatingView: View {
               .frame(maxWidth: .infinity)
               .scaleEffect(0.8)
           } else {
-            Text(submitTitle)
+            Text(strings.submitButtonTitle)
               .frame(maxWidth: .infinity)
           }
         }
@@ -41,7 +38,7 @@ struct PromptRatingView: View {
         Button {
           onDissmiss()
         } label: {
-          Text(dismissTitle)
+          Text(strings.cancelButtonTitle)
         }
         .disabled(isLoading)
         .plainTextButton(.bodySmall)
