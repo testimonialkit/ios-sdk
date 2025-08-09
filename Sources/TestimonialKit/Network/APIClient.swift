@@ -37,7 +37,7 @@ class APIClient: @unchecked Sendable {
       "locale": config.countryCode,
       "userTime": [
         "hour": Calendar.current.component(.hour, from: Date()),
-        "weekday": Calendar.current.component(.weekday, from: Date())
+        "weekday": mondayZeroWeekdayIndex(for: Date())
       ]
     ]
 
@@ -229,5 +229,10 @@ class APIClient: @unchecked Sendable {
       .appendingPathComponent(path)
 
     return URLComponents(url: url, resolvingAgainstBaseURL: false)!
+  }
+
+  private func mondayZeroWeekdayIndex(for date: Date) -> Int {
+    let iso = Calendar(identifier: .iso8601)
+    return iso.component(.weekday, from: date) - 1
   }
 }
