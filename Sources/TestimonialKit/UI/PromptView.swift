@@ -55,6 +55,21 @@ struct PromptView: View {
               viewModel.handleDismiss()
             }
           )
+          .overlay(alignment: .bottom, content: {
+            HStack(spacing: 4) {
+              Text("Powered by")
+                .font(.labelSmall)
+                .foregroundColor(.onSurface)
+
+              Image("logoFull", bundle: .module)
+                .renderingMode(.template)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(height: 20)
+                .foregroundColor(.onSurface)
+            }
+            .offset(y: 45)
+          })
           .transition(.opacity)
         case .comment:
           PromptCommentView(
@@ -68,6 +83,21 @@ struct PromptView: View {
               viewModel.handleDismiss()
             }
           )
+          .overlay(alignment: .bottom, content: {
+            HStack(spacing: 4) {
+              Text("Powered by")
+                .font(.labelSmall)
+                .foregroundColor(.onSurface)
+
+              Image("logoFull", bundle: .module)
+                .renderingMode(.template)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(height: 20)
+                .foregroundColor(.onSurface)
+            }
+            .offset(y: 45)
+          })
           .transition(.opacity)
         case .storeReview:
           EmptyView()
