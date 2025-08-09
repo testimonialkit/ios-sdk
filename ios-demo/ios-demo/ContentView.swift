@@ -12,10 +12,8 @@ struct ContentView: View {
 
       Button("Prompt if possible") {
         TestimonialKit.promptIfPossible(promptConfig: .defaultConfig.copy(
-          submitButton: .init(shape: .square),
-          commentField: .init(shape: .square),
-          tintColor: .black,
-          tintColorDark: .white,
+          submitButton: .init(shape: .capsule),
+          commentField: .init(shape: .rounded)
         ))
       }
 

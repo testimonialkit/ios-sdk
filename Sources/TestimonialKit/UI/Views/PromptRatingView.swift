@@ -9,6 +9,14 @@ struct PromptRatingView: View {
   var onSubmit: () -> Void
   var onDissmiss: () -> Void
 
+  var ratingLabel: String {
+    if(rating == 0) {
+      return strings.ratingLabel
+    } else {
+      return strings.starLabels[rating - 1]
+    }
+  }
+
   var body: some View {
     VStack(spacing: 40) {
       PromptHeader(
@@ -16,7 +24,12 @@ struct PromptRatingView: View {
         subtitle: strings.subtitle
       )
 
-      RatingPicker(rating: $rating)
+      VStack(spacing: 8) {
+        RatingPicker(rating: $rating)
+        Text(ratingLabel)
+          .font(.labelMedium)
+          .foregroundColor(.outline)
+      }
 
       VStack(spacing: 16) {
         Button {
@@ -25,7 +38,6 @@ struct PromptRatingView: View {
           if isLoading {
             ProgressView()
               .frame(maxWidth: .infinity)
-              .scaleEffect(0.8)
           } else {
             Text(strings.submitButtonTitle)
               .frame(maxWidth: .infinity)
