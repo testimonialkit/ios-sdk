@@ -25,6 +25,7 @@ let package = Package(
       dependencies: [
         .product(name: "SwiftThemeKit", package: "swift-theme-kit"),
       ],
+      resources: [.process("Resources")],
       linkerSettings: [
         .linkedFramework("UIKit"),
         .linkedFramework("SwiftUI"),

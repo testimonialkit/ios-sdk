@@ -81,17 +81,27 @@ public struct PromptConfig {
   public struct RatingStrings {
     var title: String
     var subtitle: String
+    var ratingLabel: String
+    var starLabels: [String]
     var submitButtonTitle: String
     var cancelButtonTitle: String
 
     public init(
       title: String = "Rate this app",
       subtitle: String = "Your feedback is precious to us.",
+      ratingLabel: String = "Tap a star to rate",
+      starLabels: [String] = ["I hate it", "I don't like it", "It's okay", "I like it", "I love it"],
       submitButtonTitle: String = "Submit",
       cancelButtonTitle: String = "Maybe later"
     ) {
+      if starLabels.count != 5 {
+        fatalError("Star labels array must contain exactly 5 strings.")
+      }
+      
       self.title = title
       self.subtitle = subtitle
+      self.ratingLabel = ratingLabel
+      self.starLabels = starLabels
       self.submitButtonTitle = submitButtonTitle
       self.cancelButtonTitle = cancelButtonTitle
     }

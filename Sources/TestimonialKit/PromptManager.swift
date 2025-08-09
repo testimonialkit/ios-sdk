@@ -206,7 +206,7 @@ final class PromptManager: @unchecked Sendable {
       }
 
     case .failure(let error):
-      print("[PromptManager] Eligibility request failed:", error)
+      print("[PromptManager] Eligibility request failed:", error.localizedDescription)
     }
   }
 
@@ -230,6 +230,9 @@ final class PromptManager: @unchecked Sendable {
 
       print("[PromptManager] Prompt event logged:", response.status.rawValue)
     case .failure(let error):
+      currentEligibility = nil
+      currentPromptEvent = nil
+      promptMetadata = nil
       print("[PromptManager] Eligibility request failed:", error)
     }
   }
@@ -252,6 +255,9 @@ final class PromptManager: @unchecked Sendable {
         FeedbackEvent(type: .rating, response: response)
       )
     case .failure(let error):
+      feedbackEventPublisher.send(
+        FeedbackEvent(type: .rating, response: nil)
+      )
       print("[PromptManager] Feedback request failed:", error)
     }
   }
@@ -274,6 +280,9 @@ final class PromptManager: @unchecked Sendable {
         )
       }
     case .failure(let error):
+      feedbackEventPublisher.send(
+        FeedbackEvent(type: .comment, response: nil)
+      )
       print("[PromptManager] Comment request failed:", error)
     }
   }
