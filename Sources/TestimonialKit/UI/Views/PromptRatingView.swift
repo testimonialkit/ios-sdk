@@ -28,6 +28,7 @@ struct PromptRatingView: View {
           if isLoading {
             ProgressView()
               .frame(maxWidth: .infinity)
+              .scaleEffect(0.8)
           } else {
             Text(submitTitle)
               .frame(maxWidth: .infinity)
