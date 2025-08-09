@@ -1,7 +1,7 @@
 import Foundation
 
 class TestimonialKitConfig {
-  let apiKey: String
+  var apiKey: String
   let bundleId: String
   var userId: String
   let appVersion: String

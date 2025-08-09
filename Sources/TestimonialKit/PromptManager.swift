@@ -1,9 +1,27 @@
 import SwiftUI
 import Combine
+import Factory
 
-final class PromptManager: @unchecked Sendable {
-  static let shared = PromptManager()
+@MainActor
+protocol PromptManagerProtocol: AnyObject {
+  var feedbackEventPublisher: PassthroughSubject<FeedbackEvent, Never> { get }
+  func logPromptShown()
+  func logPromptDismissed()
+  func logPromptDismissedAfterRating()
+  func logRedirectedToStore()
+  func logStoreReviewSkipped()
+  func logUserFeedback(rating: Int, comment: String?)
+  func logUserComment(comment: String?)
+  func promptForReviewIfPossible(metadata: [String: String]?, config: PromptConfig)
+  func dismissPrompt()
+  func showPrompt()
+}
 
+@MainActor
+final class PromptManager: PromptManagerProtocol {
+  @Injected(\.requestQueue) var requestQueue
+  @Injected(\.apiClient) var apiClient
+  private let testimonialKitConfig: TestimonialKitConfig
   private var promptMetadata: [String: String]?
   private var cancellables = Set<AnyCancellable>()
   private var currentEligibility: PromptEligibilityResponse?
@@ -14,8 +32,9 @@ final class PromptManager: @unchecked Sendable {
   private var currentPromptConfig: PromptConfig = PromptConfig()
   let feedbackEventPublisher = PassthroughSubject<FeedbackEvent, Never>()
 
-  private init() {
-    RequestQueue.shared.eventPublisher
+  init(config: TestimonialKitConfig) {
+    self.testimonialKitConfig = config
+    requestQueue.eventPublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] result in
         self?.handle(result)
@@ -29,16 +48,11 @@ final class PromptManager: @unchecked Sendable {
       return
     }
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendPromptEvent(
+    requestQueue.enqueue(
+      apiClient.sendPromptEvent(
         type: .promptShown,
         previousEventId: currentEligibility.eventId,
-        config: config,
+        feedbackEventId: nil,
         metadata: promptMetadata
       )
     )
@@ -52,16 +66,11 @@ final class PromptManager: @unchecked Sendable {
       return
     }
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendPromptEvent(
+    requestQueue.enqueue(
+      apiClient.sendPromptEvent(
         type: .promptDismissed,
         previousEventId: currentPromptEvent.eventId,
-        config: config,
+        feedbackEventId: nil,
         metadata: promptMetadata
       )
     )
@@ -70,17 +79,11 @@ final class PromptManager: @unchecked Sendable {
   func logPromptDismissedAfterRating() {
     guard let currentFeedbackResponse, let currentPromptEvent, feedbackEventRegistered else { return }
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendPromptEvent(
+    requestQueue.enqueue(
+      apiClient.sendPromptEvent(
         type: .promptDismissedAfterRating,
         previousEventId: currentPromptEvent.eventId,
         feedbackEventId: currentFeedbackResponse.eventId,
-        config: config,
         metadata: promptMetadata
       )
     )
@@ -91,16 +94,11 @@ final class PromptManager: @unchecked Sendable {
   func logRedirectedToStore() {
     guard let currentPromptEvent else { return }
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendPromptEvent(
+    requestQueue.enqueue(
+      apiClient.sendPromptEvent(
         type: .redirectedToStore,
         previousEventId: currentPromptEvent.eventId,
-        config: config,
+        feedbackEventId: nil,
         metadata: promptMetadata
       )
     )
@@ -109,16 +107,11 @@ final class PromptManager: @unchecked Sendable {
   func logStoreReviewSkipped() {
     guard let currentPromptEvent else { return }
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendPromptEvent(
+    requestQueue.enqueue(
+      apiClient.sendPromptEvent(
         type: .storeReviewSkipped,
         previousEventId: currentPromptEvent.eventId,
-        config: config,
+        feedbackEventId: nil,
         metadata: promptMetadata
       )
     )
@@ -127,17 +120,12 @@ final class PromptManager: @unchecked Sendable {
   func logUserFeedback(rating: Int, comment: String? = nil) {
     guard let currentPromptEvent else { return }
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendFeedbackEvent(
+    requestQueue.enqueue(
+      apiClient.sendFeedbackEvent(
         promptEventId: currentPromptEvent.eventId,
         rating: rating,
         comment: comment,
-        config: config
+        metadata: promptMetadata
       )
     )
 
@@ -147,16 +135,10 @@ final class PromptManager: @unchecked Sendable {
   func logUserComment(comment: String?) {
     guard let currentFeedbackResponse else { return }
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendFeedbackComment(
+    requestQueue.enqueue(
+      apiClient.sendFeedbackComment(
         comment: comment,
-        feedbackEventId: currentFeedbackResponse.eventId,
-        config: config
+        feedbackEventId: currentFeedbackResponse.eventId
       )
     )
   }
@@ -165,20 +147,37 @@ final class PromptManager: @unchecked Sendable {
     self.currentPromptConfig = config
     self.promptMetadata = metadata
 
-    guard let config = TestimonialKitManager.shared.config else {
-      print("[Prompt] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.checkPromptEligibility(config: config)
+    requestQueue.enqueue(
+      apiClient.checkPromptEligibility()
     )
   }
 
+  func dismissPrompt() {
+    logPromptDismissed()
+    presentedPromptVC?.dismiss(animated: true)
+    presentedPromptVC = nil
+  }
+
+  func showPrompt() {
+    guard let presenter = UIViewController.topMost else {
+      print("[PromptManager] No presenter available")
+      return
+    }
+
+    let swiftUIView = PromptView(config: currentPromptConfig)
+    let hostingVC = PromptViewController(rootView: swiftUIView)
+    presenter.present(hostingVC, animated: true)
+    presentedPromptVC = hostingVC
+  }
+
   private func handle(_ event: QueuedRequestResult) {
-    handleEligibilityResult(event)
-    handlePromptEventResult(event)
-    handleFeedbackEventResult(event)
+    if event.eventType == .checkPromptEligibility {
+      handleEligibilityResult(event)
+    } else if event.eventType == .sendFeedbackEvent {
+      handleFeedbackEventResult(event)
+    } else if event.eventType == .sendPromptEvent {
+      handlePromptEventResult(event)
+    }
   }
 
   private func handleEligibilityResult(_ event: QueuedRequestResult) {
@@ -195,11 +194,7 @@ final class PromptManager: @unchecked Sendable {
       currentFeedbackResponse = nil
 
       if response.eligible {
-        Task {
-          await MainActor.run {
-            showPrompt()
-          }
-        }
+        showPrompt()
         print("[PromptManager] User eligible for prompt")
       } else {
         print("[PromptManager] User not eligible for prompt:", response.reason ?? "Unknown reason")
@@ -285,25 +280,5 @@ final class PromptManager: @unchecked Sendable {
       )
       print("[PromptManager] Comment request failed:", error)
     }
-  }
-
-  @MainActor
-  func dismissPrompt() {
-    logPromptDismissed()
-    presentedPromptVC?.dismiss(animated: true)
-    presentedPromptVC = nil
-  }
-
-  @MainActor
-  func showPrompt() {
-    guard let presenter = UIViewController.topMost else {
-      print("[PromptManager] No presenter available")
-      return
-    }
-
-    let swiftUIView = PromptView(config: currentPromptConfig)
-    let hostingVC = PromptViewController(rootView: swiftUIView)
-    presenter.present(hostingVC, animated: true)
-    presentedPromptVC = hostingVC
   }
 }

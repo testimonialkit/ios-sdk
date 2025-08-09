@@ -1,6 +1,6 @@
 import Foundation
 
-class Storage {
+final class Storage {
   private static let internalUserIdKey = "testimonialkit_internal_user_id"
   private static let requestCommentOnPositiveRatingKey = "testimonialkit_request_comment_on_positive_rating"
 

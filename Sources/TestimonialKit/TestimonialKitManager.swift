@@ -1,28 +1,41 @@
 import SwiftUI
+import Factory
 
-public class TestimonialKitManager: @unchecked Sendable {
-  public static let shared = TestimonialKitManager()
-  var config: TestimonialKitConfig!
+@MainActor
+protocol TestimonialKitManagerProtocol: AnyObject {
+  func setup(with apiKey: String)
+  func trackEvent(
+    name: String,
+    score: Int,
+    type: AppEventType,
+    metadata: [String: String]?
+  )
+  func promptIfPossible(metadata: [String: String]?, promptConfig: PromptConfig)
+}
+
+@MainActor
+class TestimonialKitManager: TestimonialKitManagerProtocol {
+  @Injected(\.apiClient) var apiClient
+  private let promptManager: PromptManagerProtocol
+  private let requestQueue: RequestQueueProtocol
+  private let config: TestimonialKitConfig
   private let responseHandler = QueueResponseHandler()
-  private let promptManager = PromptManager.shared
 
-  private init() {}
+  init(
+    promptManager: PromptManagerProtocol,
+    requestQueue: RequestQueueProtocol,
+    configuration: TestimonialKitConfig
+  ) {
+    self.promptManager = promptManager
+    self.requestQueue = requestQueue
+    self.config = configuration
+  }
 
   func setup(with apiKey: String) {
-    let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
-    let countryCode = Locale.current.regionCode ?? "unknown"
-    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
-    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-    let appVersion = "\(version) (\(build))"
-
-    config = TestimonialKitConfig(apiKey: apiKey,
-                                  bundleId: bundleId,
-                                  userId: Storage.internalUserId,
-                                  appVersion: appVersion,
-                                  countryCode: countryCode)
+    config.apiKey = apiKey
     configure(config: config)
-    RequestQueue.shared.enqueue(
-      APIClient.shared.initSdk(config: config)
+    requestQueue.enqueue(
+      apiClient.initSdk()
     )
   }
 
@@ -32,34 +45,21 @@ public class TestimonialKitManager: @unchecked Sendable {
     type: AppEventType = .positive,
     metadata: [String: String]? = nil
   ) {
-    guard let config = config else {
-      print("[Event Tracking] SDK is not configured.")
-      return
-    }
-
-    RequestQueue.shared.enqueue(
-      APIClient.shared.sendAppEvent(
+    requestQueue.enqueue(
+      apiClient.sendAppEvent(
         name: name,
         score: score,
         type: type,
-        metadata: metadata,
-        config: config
+        metadata: metadata
       )
     )
   }
 
   func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig) {
-    guard let config = config else { return }
-
     promptManager.promptForReviewIfPossible(metadata: metadata, config: promptConfig)
   }
 
-  @MainActor
-  func showProptUI() {
-    promptManager.showPrompt()
-  }
-
-  func configure(config: TestimonialKitConfig) {
-    RequestQueue.shared.configure(config: config)
+  private func configure(config: TestimonialKitConfig) {
+    requestQueue.configure(config: config)
   }
 }

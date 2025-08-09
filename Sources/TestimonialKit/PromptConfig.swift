@@ -1,8 +1,7 @@
 import SwiftUI
 import SwiftThemeKit
 
-public struct PromptConfig {
-  @MainActor
+public struct PromptConfig: @unchecked Sendable {
   public static let defaultConfig: PromptConfig = .init()
 
   var ratingStrings: RatingStrings

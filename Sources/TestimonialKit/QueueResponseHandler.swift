@@ -1,11 +1,13 @@
 import Foundation
 import Combine
+import Factory
 
 final class QueueResponseHandler {
+  @Injected(\.requestQueue) var requestQueue
   private var cancellables = Set<AnyCancellable>()
 
   init() {
-    RequestQueue.shared.eventPublisher
+    requestQueue.eventPublisher
       .receive(on: DispatchQueue.main) // or background if needed
       .sink { responseEvent in
         Self.handle(responseEvent)
@@ -26,10 +28,14 @@ final class QueueResponseHandler {
     switch type {
     case .initSdk:
       if let response = try? JSONDecoder().decode(SDKInitResponse.self, from: data) {
-        Storage.internalUserId = response.userId
-        Storage.requestCommentOnPositiveRating = response.requestCommentOnPositiveRating
-        TestimonialKitManager.shared.config.userId = response.userId
-        print("★ TestimonialKit initialized successfully ★")
+        Task { @MainActor in
+          let manager = resolve(\.testimonialKitManager)
+          let config = resolve(\.configuration)
+          Storage.internalUserId = response.userId
+          Storage.requestCommentOnPositiveRating = response.requestCommentOnPositiveRating
+          config.userId = response.userId
+          print("★ TestimonialKit initialized successfully ★")
+        }
       }
     case .sendEvent:
       if let response = try? JSONDecoder().decode(AppEventLogResponse.self, from: data) {

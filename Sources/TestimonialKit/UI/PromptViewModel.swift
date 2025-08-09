@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Factory
 
 enum PromptViewState {
   case rating, comment, storeReview
@@ -8,7 +9,7 @@ enum PromptViewState {
 @MainActor
 class PromptViewModel: ObservableObject {
   private var cancellables = Set<AnyCancellable>()
-  private let promptManager = PromptManager.shared
+  @Injected(\.promptManager) private var promptManager
   @Published var rating: Int = 0
   @Published var comment: String = ""
   @Published var state: PromptViewState = .rating

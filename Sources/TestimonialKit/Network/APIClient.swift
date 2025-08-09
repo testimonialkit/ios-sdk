@@ -1,12 +1,46 @@
 import Foundation
 
-class APIClient: @unchecked Sendable {
-  static let shared = APIClient()
-  private init() {}
+protocol APIClientProtocol: AnyObject {
+  func initSdk() -> QueuedRequest
 
-  func initSdk(
+  func checkPromptEligibility() -> QueuedRequest
+
+  func sendAppEvent(
+    name: String,
+    score: Int,
+    type: AppEventType,
+    metadata: [String: String]?
+  ) -> QueuedRequest
+
+  func sendPromptEvent(
+    type: PromptEventType,
+    previousEventId: String,
+    feedbackEventId: String?,
+    metadata: [String: String]?
+  ) -> QueuedRequest
+
+  func sendFeedbackEvent(
+    promptEventId: String,
+    rating: Int,
+    comment: String?,
+    metadata: [String: String]?
+  ) -> QueuedRequest
+
+  func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest
+
+  func execute(queuedRequest: QueuedRequest) async throws -> Data
+}
+
+class APIClient: APIClientProtocol {
+  private let config: TestimonialKitConfig
+
+  init(
     config: TestimonialKitConfig
-  ) -> QueuedRequest {
+  ) {
+    self.config = config
+  }
+
+  func initSdk() -> QueuedRequest {
     let body = [
       "userId": config.userId,
       "sdkVersion": config.sdkVersion,
@@ -17,7 +51,7 @@ class APIClient: @unchecked Sendable {
     return QueuedRequest(
       eventType: .initSdk,
       method: "POST",
-      path: "/sdk/init",
+      path: Endpoints.initialization,
       headers: [
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
@@ -28,9 +62,7 @@ class APIClient: @unchecked Sendable {
     )
   }
 
-  func checkPromptEligibility(
-    config: TestimonialKitConfig,
-  ) -> QueuedRequest {
+  func checkPromptEligibility() -> QueuedRequest {
     var body: [String: Any] = [
       "appVersion": config.appVersion,
       "userId": config.userId,
@@ -44,7 +76,7 @@ class APIClient: @unchecked Sendable {
     return QueuedRequest(
       eventType: .checkPromptEligibility,
       method: "POST",
-      path: "/sdk/should-prompt",
+      path: Endpoints.promptEligibility,
       headers: [
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
@@ -59,8 +91,7 @@ class APIClient: @unchecked Sendable {
     name: String,
     score: Int,
     type: AppEventType = .positive,
-    metadata: [String: String]? = nil,
-    config: TestimonialKitConfig,
+    metadata: [String: String]? = nil
   ) -> QueuedRequest {
     var body: [String: Any] = [
       "appVersion": config.appVersion,
@@ -77,7 +108,7 @@ class APIClient: @unchecked Sendable {
     return QueuedRequest(
       eventType: .sendEvent,
       method: "POST",
-      path: "/sdk/project-events",
+      path: Endpoints.projectEvents,
       headers: [
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
@@ -92,7 +123,6 @@ class APIClient: @unchecked Sendable {
     type: PromptEventType,
     previousEventId: String,
     feedbackEventId: String? = nil,
-    config: TestimonialKitConfig,
     metadata: [String: String]? = nil
   ) -> QueuedRequest {
     var body: [String: Any] = [
@@ -110,7 +140,7 @@ class APIClient: @unchecked Sendable {
     return QueuedRequest(
       eventType: .sendPromptEvent,
       method: "POST",
-      path: "/sdk/prompt-events",
+      path: Endpoints.promptEvents,
       headers: [
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
@@ -128,8 +158,7 @@ class APIClient: @unchecked Sendable {
     promptEventId: String,
     rating: Int,
     comment: String? = nil,
-    metadata: [String: String]? = nil,
-    config: TestimonialKitConfig
+    metadata: [String: String]? = nil
   ) -> QueuedRequest {
     var body: [String: Any] = [
       "userId": config.userId,
@@ -146,7 +175,7 @@ class APIClient: @unchecked Sendable {
     return QueuedRequest(
       eventType: .sendFeedbackEvent,
       method: "POST",
-      path: "/sdk/feedback",
+      path: Endpoints.feedback,
       headers: [
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
@@ -157,7 +186,7 @@ class APIClient: @unchecked Sendable {
     )
   }
 
-  func sendFeedbackComment(comment: String?, feedbackEventId: String, config: TestimonialKitConfig) -> QueuedRequest {
+  func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest {
     var body: [String: Any] = [
       "comment": comment,
       "feedbackEventId": feedbackEventId
@@ -166,7 +195,7 @@ class APIClient: @unchecked Sendable {
     return QueuedRequest(
       eventType: .sendFeedbackComment,
       method: "PUT",
-      path: "/sdk/feedback",
+      path: Endpoints.feedback,
       headers: [
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,

@@ -1,9 +1,14 @@
 import Foundation
 import Combine
 
-class RequestQueue: @unchecked Sendable {
-  static let shared = RequestQueue()
+protocol RequestQueueProtocol: AnyObject {
+  var eventPublisher: PassthroughSubject<QueuedRequestResult, Never> { get }
 
+  func configure(config: TestimonialKitConfig)
+  func enqueue(_ request: QueuedRequest)
+}
+
+final class RequestQueue: @unchecked Sendable, RequestQueueProtocol {
   private var queue: [QueuedRequest] = []
   private var isProcessing = false
   private let lock = DispatchQueue(label: "dev.testimonialkit.queue")
@@ -12,7 +17,7 @@ class RequestQueue: @unchecked Sendable {
 
   let eventPublisher = PassthroughSubject<QueuedRequestResult, Never>()
 
-  private init() {
+  init() {
     let filename = "queued_requests.json"
     saveURL = FileManager.default
       .urls(for: .documentDirectory, in: .userDomainMask)[0]

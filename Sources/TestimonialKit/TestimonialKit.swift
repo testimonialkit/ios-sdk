@@ -1,11 +1,15 @@
 import UIKit
 import Combine
+import Factory
 
+@MainActor
 public class TestimonialKit {
+
   private init() {}
 
   public static func setup(with apiKey: String) {
-    TestimonialKitManager.shared.setup(with: apiKey)
+    let manager = resolve(\.testimonialKitManager)
+    manager.setup(with: apiKey)
   }
 
   public static func trackEvent(
@@ -14,15 +18,12 @@ public class TestimonialKit {
     type: AppEventType = .positive,
     metadata: [String: String]? = nil
   ) {
-    TestimonialKitManager.shared.trackEvent(name: name, score: score, type: type, metadata: metadata)
+    let manager = resolve(\.testimonialKitManager)
+    manager.trackEvent(name: name, score: score, type: type, metadata: metadata)
   }
 
   public static func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig = PromptConfig()) {
-    TestimonialKitManager.shared.promptIfPossible(metadata: metadata, promptConfig: promptConfig)
-  }
-
-  @MainActor
-  public func showProptUI() {
-    TestimonialKitManager.shared.showProptUI()
+    let manager = resolve(\.testimonialKitManager)
+    manager.promptIfPossible(metadata: metadata, promptConfig: promptConfig)
   }
 }

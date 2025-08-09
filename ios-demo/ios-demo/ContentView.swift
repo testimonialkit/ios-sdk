@@ -11,10 +11,7 @@ struct ContentView: View {
       Text("Hello, world!")
 
       Button("Prompt if possible") {
-        TestimonialKit.promptIfPossible(promptConfig: .defaultConfig.copy(
-          submitButton: .init(shape: .capsule),
-          commentField: .init(shape: .rounded)
-        ))
+        TestimonialKit.promptIfPossible()
       }
 
       Button("Track custom event") {
