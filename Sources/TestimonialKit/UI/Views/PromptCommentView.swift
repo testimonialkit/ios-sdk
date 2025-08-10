@@ -10,7 +10,7 @@ struct PromptCommentView: View {
   var onDissmiss: () -> Void
 
   var body: some View {
-    VStack(spacing: 40) {
+    VStack(spacing: 32) {
       PromptHeader(
         title: strings.title,
         subtitle: strings.subtitle
@@ -21,7 +21,7 @@ struct PromptCommentView: View {
           // Multiline TextField (keeps your TextField-based styles)
           TextField(strings.placeholder, text: $comment, axis: .vertical)
             .applyThemeTextFieldStyle()
-            .lineLimit(3...6) // grows up to 6 lines
+            .lineLimit(2...6) // grows up to 6 lines
         } else {
           // Fallback: TextEditor (apply simple styling)
           ZStack(alignment: .topLeading) {

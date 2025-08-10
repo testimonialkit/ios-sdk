@@ -6,6 +6,7 @@ public enum TestimonialKitError: Error, LocalizedError {
   case invalidAPIKey
   case networkError(String)
   case storageError(String)
+  case parsingError(String)
   case unknown
 
   public var errorDescription: String? {
@@ -20,6 +21,8 @@ public enum TestimonialKitError: Error, LocalizedError {
       return "Network error: \(message)"
     case .storageError(let message):
       return "Storage error: \(message)"
+    case .parsingError(let message):
+      return "Parsing error: \(message)"
     case .unknown:
       return "An unknown error occurred."
     }

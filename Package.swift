@@ -17,7 +17,8 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/Charlyk/swift-theme-kit.git", from: "1.0.4"),
-    .package(url: "https://github.com/hmlongco/Factory.git", from: "2.5.3")
+    .package(url: "https://github.com/hmlongco/Factory.git", from: "2.5.3"),
+    .package(url: "https://github.com/simibac/ConfettiSwiftUI.git", from: "2.0.3")
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -25,7 +26,8 @@ let package = Package(
       name: "TestimonialKit",
       dependencies: [
         .product(name: "SwiftThemeKit", package: "swift-theme-kit"),
-        .product(name: "Factory", package: "Factory")
+        .product(name: "Factory", package: "Factory"),
+        .product(name: "ConfettiSwiftUI", package: "ConfettiSwiftUI")
       ],
       resources: [.process("Resources")],
       linkerSettings: [

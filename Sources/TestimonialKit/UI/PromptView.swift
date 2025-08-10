@@ -4,115 +4,136 @@ import SwiftThemeKit
 
 struct PromptView: View {
   let config: PromptConfig
-  @Injected(\.promptManager) var promptManager
   @Environment(\.appTheme) var appTheme
-  @StateObject private var viewModel = PromptViewModel()
+  @StateObject private var viewModel = resolve(\.promptViewModel)
+
+  private var lightTheme: Theme {
+    .defaultLight.copy(
+      colors: .defaultLight.copy(
+        primary: config.tintColorDark
+      ),
+      buttons: .defaultLight.copy(
+        shape: config.submitButton.shape,
+        size: config.submitButton.size,
+        variant: config.submitButton.variant
+      ),
+      textFields: ThemeTextFieldDefaults(
+        shape: config.commentField.shape,
+        size: config.commentField.size,
+        variant: config.commentField.variant
+      )
+    )
+  }
+
+  private var darkTheme: Theme {
+    .defaultDark.copy(
+      colors: .defaultDark.copy(
+        primary: config.tintColorDark
+      ),
+      buttons: .defaultDark.copy(
+        shape: config.submitButton.shape,
+        size: config.submitButton.size,
+        variant: config.submitButton.variant
+      ),
+      textFields: ThemeTextFieldDefaults(
+        shape: config.commentField.shape,
+        size: config.commentField.size,
+        variant: config.commentField.variant
+      )
+    )
+  }
 
   var body: some View {
     ThemeProvider(
-      light: .defaultLight.copy(
-        colors: .defaultLight.copy(
-          primary: config.tintColorDark
-        ),
-        buttons: .defaultLight.copy(
-          shape: config.submitButton.shape,
-          size: config.submitButton.size,
-          variant: config.submitButton.variant
-        ),
-        textFields: ThemeTextFieldDefaults(
-          shape: config.commentField.shape,
-          size: config.commentField.size,
-          variant: config.commentField.variant
-        )
-      ),
-      dark: .defaultDark.copy(
-        colors: .defaultDark.copy(
-          primary: config.tintColorDark
-        ),
-        buttons: .defaultDark.copy(
-          shape: config.submitButton.shape,
-          size: config.submitButton.size,
-          variant: config.submitButton.variant
-        ),
-        textFields: ThemeTextFieldDefaults(
-          shape: config.commentField.shape,
-          size: config.commentField.size,
-          variant: config.commentField.variant
-        )
-      )
+      light: lightTheme,
+      dark: darkTheme
     ) {
       ZStack {
         switch viewModel.state {
         case .rating:
-          PromptRatingView(
-            rating: $viewModel.rating,
-            strings: config.ratingStrings,
-            isLoading: viewModel.isLoading,
-            onSubmit: {
-              viewModel.handleSubmit()
-            },
-            onDissmiss: {
-              viewModel.handleDismiss()
-            }
-          )
-          .overlay(alignment: .bottom, content: {
-            HStack(spacing: 4) {
-              Text("Powered by")
-                .font(.labelSmall)
-                .foregroundColor(.onSurface)
-
-              Image("logoFull", bundle: .module)
-                .renderingMode(.template)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(height: 20)
-                .foregroundColor(.onSurface)
-            }
-            .offset(y: 45)
-          })
-          .transition(.opacity)
+          ratingView
         case .comment:
-          PromptCommentView(
-            comment: $viewModel.comment,
-            strings: config.commentStrings,
-            isLoading: viewModel.isLoading,
-            onSubmit: {
-              viewModel.handleSubmit()
-            },
-            onDissmiss: {
-              viewModel.handleDismiss()
-            }
-          )
-          .overlay(alignment: .bottom, content: {
-            HStack(spacing: 4) {
-              Text("Powered by")
-                .font(.labelSmall)
-                .foregroundColor(.onSurface)
-
-              Image("logoFull", bundle: .module)
-                .renderingMode(.template)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(height: 20)
-                .foregroundColor(.onSurface)
-            }
-            .offset(y: 45)
-          })
-          .transition(.opacity)
+          commentView
         case .storeReview:
-          EmptyView()
-            .transition(.opacity)
+          storeReviewView
+        case .thankYou:
+          thankYouView
         }
       }
-      .animation(.easeInOut(duration: 0.25), value: viewModel.state)
+      .id(viewModel.state)
+//      .animation(.easeInOut(duration: 0.25), value: viewModel.state)
       .onAppear {
-        promptManager.logPromptShown()
+        viewModel.handleOnAppear()
       }
       .onDisappear {
-        promptManager.logPromptDismissed()
+        viewModel.handleOnDisappear()
       }
       .padding(16)
     }
+  }
+
+  @ViewBuilder
+  private var ratingView: some View {
+    PromptRatingView(
+      rating: $viewModel.rating,
+      strings: config.ratingStrings,
+      isLoading: viewModel.isLoading,
+      onSubmit: {
+        viewModel.handleSubmit()
+      },
+      onDissmiss: {
+        viewModel.handleDismiss()
+      }
+    )
+    .showBranding()
+    .transition(.opacity)
+  }
+
+  @ViewBuilder
+  private var commentView: some View {
+    PromptCommentView(
+      comment: $viewModel.comment,
+      strings: config.commentStrings,
+      isLoading: viewModel.isLoading,
+      onSubmit: {
+        viewModel.handleSubmit()
+      },
+      onDissmiss: {
+        viewModel.handleDismiss()
+      }
+    )
+    .showBranding()
+    .transition(.opacity)
+  }
+
+  @ViewBuilder
+  private var storeReviewView: some View {
+    PromptStoreReview(
+      strings: config.storeReviewStrings,
+      onSubmit: {
+        viewModel.handleSubmit()
+      },
+      onDissmiss: {
+        viewModel.handleDismiss()
+      }
+    )
+    .showBranding()
+    .transition(.opacity)
+  }
+
+  @ViewBuilder
+  private var thankYouView: some View {
+    PromptThankYou(
+      strings: config.thankYouStrings,
+      onSubmit: {
+        viewModel.handleSubmit()
+      },
+      onDissmiss: {
+        viewModel.handleDismiss()
+      }
+    )
+    .showBranding()
+    .transition(.opacity)
   }
 }
 
