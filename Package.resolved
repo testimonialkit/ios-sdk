@@ -1,0 +1,33 @@
+{
+  "originHash" : "4d04eacea469588240eb8bc63c0b64f7b8277973b91232fee4cd4ac02934c757",
+  "pins" : [
+    {
+      "identity" : "confettiswiftui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/simibac/ConfettiSwiftUI.git",
+      "state" : {
+        "revision" : "79666d42b882bf7921b1941fa7c636d681d77980",
+        "version" : "2.0.3"
+      }
+    },
+    {
+      "identity" : "factory",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hmlongco/Factory.git",
+      "state" : {
+        "revision" : "ccc898f21992ebc130bc04cc197460a5ae230bcf",
+        "version" : "2.5.3"
+      }
+    },
+    {
+      "identity" : "swift-theme-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Charlyk/swift-theme-kit.git",
+      "state" : {
+        "revision" : "d81bac4144e7f0a94969ed17a250fc0862de1340",
+        "version" : "1.0.4"
+      }
+    }
+  ],
+  "version" : 3
+}
