@@ -17,13 +17,13 @@ protocol TestimonialKitManagerProtocol: AnyObject {
 class TestimonialKitManager: TestimonialKitManagerProtocol {
   @Injected(\.apiClient) var apiClient
   private let promptManager: PromptManagerProtocol
-  private let requestQueue: RequestQueueProtocol
+  private let requestQueue: RequestQueue
   private let config: TestimonialKitConfig
   private let responseHandler = QueueResponseHandler()
 
   init(
     promptManager: PromptManagerProtocol,
-    requestQueue: RequestQueueProtocol,
+    requestQueue: RequestQueue,
     configuration: TestimonialKitConfig
   ) {
     self.promptManager = promptManager
@@ -33,10 +33,12 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
 
   func setup(with apiKey: String) {
     config.apiKey = apiKey
-    configure(config: config)
-    requestQueue.enqueue(
-      apiClient.initSdk()
-    )
+    configure()
+    Task {
+      await requestQueue.enqueue(
+        apiClient.initSdk()
+      )
+    }
   }
 
   func trackEvent(
@@ -45,21 +47,23 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
     type: AppEventType = .positive,
     metadata: [String: String]? = nil
   ) {
-    requestQueue.enqueue(
-      apiClient.sendAppEvent(
-        name: name,
-        score: score,
-        type: type,
-        metadata: metadata
+    Task {
+      await requestQueue.enqueue(
+        apiClient.sendAppEvent(
+          name: name,
+          score: score,
+          type: type,
+          metadata: metadata
+        )
       )
-    )
+    }
   }
 
   func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig) {
     promptManager.promptForReviewIfPossible(metadata: metadata, config: promptConfig)
   }
 
-  private func configure(config: TestimonialKitConfig) {
-    requestQueue.configure(config: config)
+  private func configure() {
+    Task { await requestQueue.configure() }
   }
 }

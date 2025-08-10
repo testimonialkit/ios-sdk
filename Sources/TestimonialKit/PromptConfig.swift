@@ -6,6 +6,8 @@ public struct PromptConfig: @unchecked Sendable {
 
   var ratingStrings: RatingStrings
   var commentStrings: CommentStrings
+  var storeReviewStrings: StoreReviewStrings
+  var thankYouStrings: ThankYouStrings
   var commentField: PromptConfig.TextField
   var submitButton: PromptConfig.Button
   var tintColor: Color
@@ -14,6 +16,8 @@ public struct PromptConfig: @unchecked Sendable {
   public init(
     ratingStrings: RatingStrings = .init(),
     commentStrings: CommentStrings = .init(),
+    storeReviewStrings: StoreReviewStrings = .init(),
+    thankYouStrings: ThankYouStrings = .init(),
     submitButton: PromptConfig.Button = .init(),
     commentField: PromptConfig.TextField = .init(),
     tintColor: Color = .blue,
@@ -21,6 +25,8 @@ public struct PromptConfig: @unchecked Sendable {
   ) {
     self.ratingStrings = ratingStrings
     self.commentStrings = commentStrings
+    self.storeReviewStrings = storeReviewStrings
+    self.thankYouStrings = thankYouStrings
     self.commentField = commentField
     self.submitButton = submitButton
     self.tintColor = tintColor
@@ -96,7 +102,7 @@ public struct PromptConfig: @unchecked Sendable {
       if starLabels.count != 5 {
         fatalError("Star labels array must contain exactly 5 strings.")
       }
-      
+
       self.title = title
       self.subtitle = subtitle
       self.ratingLabel = ratingLabel
@@ -125,6 +131,41 @@ public struct PromptConfig: @unchecked Sendable {
       self.placeholder = placeholder
       self.submitButtonTitle = submitButtonTitle
       self.cancelButtonTitle = cancelButtonTitle
+    }
+  }
+
+  public struct StoreReviewStrings {
+    var title: String
+    var message: String
+    var submitButtonTitle: String
+    var cancelButtonTitle: String
+
+    public init(
+      title: String = "Thank you!",
+      message: String = "What about reviewing us in the App Store?",
+      submitButtonTitle: String = "Ok, sure",
+      cancelButtonTitle: String = "No thanks"
+    ) {
+      self.title = title
+      self.message = message
+      self.submitButtonTitle = submitButtonTitle
+      self.cancelButtonTitle = cancelButtonTitle
+    }
+  }
+
+  public struct ThankYouStrings {
+    var title: String
+    var message: String
+    var closeButtonTitle: String
+    
+    public init(
+      title: String = "Thank you!",
+      message: String = "Your feedback is precious to us.",
+      closeButtonTitle: String = "Close"
+    ) {
+      self.title = title
+      self.message = message
+      self.closeButtonTitle = closeButtonTitle
     }
   }
 }

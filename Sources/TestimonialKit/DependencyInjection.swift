@@ -37,7 +37,7 @@ extension Container {
     .scope(.singleton)
   }
 
-  var requestQueue: Factory<RequestQueueProtocol> {
+  var requestQueue: Factory<RequestQueue> {
     self {
       RequestQueue()
     }
@@ -54,5 +54,12 @@ extension Container {
       )
     }
     .scope(.singleton)
+  }
+
+  @MainActor
+  var promptViewModel: Factory<PromptViewModel> {
+    self { @MainActor in
+      PromptViewModel(promptManager: self.promptManager())
+    }
   }
 }

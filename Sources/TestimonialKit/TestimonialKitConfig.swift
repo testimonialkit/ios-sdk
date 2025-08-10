@@ -8,7 +8,6 @@ class TestimonialKitConfig {
   let countryCode: String
   let platform: String = "ios"
   let sdkVersion: String = "1.0.0"
-  let retryCount: Int = 3
 
   init(apiKey: String,
        bundleId: String,

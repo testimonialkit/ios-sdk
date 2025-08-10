@@ -1,45 +1,74 @@
 import Foundation
-import Combine
+@preconcurrency import Combine
 import Factory
 
+@MainActor
 final class QueueResponseHandler {
   @Injected(\.requestQueue) var requestQueue
   private var cancellables = Set<AnyCancellable>()
 
   init() {
-    requestQueue.eventPublisher
-      .receive(on: DispatchQueue.main) // or background if needed
-      .sink { responseEvent in
-        Self.handle(responseEvent)
+    startListening()
+  }
+
+  private func startListening() {
+    requestQueue.publisher
+      .receive(on: requestQueue.decodingQueue) // or background if needed
+      .compactMap { event -> DecodedQueueEvent? in
+        switch event.eventType {
+        case .initSdk:
+          switch event.result {
+          case .success(let data):
+            if let response = try? JSONDecoder().decode(SDKInitResponse.self, from: data) {
+              return .initSdk(.success(response))
+            } else {
+              return .initSdk(.failure(TestimonialKitError.parsingError("Failed to parse SDK init response")))
+            }
+          case .failure(let error):
+            return .initSdk(.failure(error))
+          }
+        case .sendEvent:
+          switch event.result {
+          case .success(let data):
+            if let response = try? JSONDecoder().decode(AppEventLogResponse.self, from: data) {
+              return .sendEvent(.success(response))
+            } else {
+              return .sendEvent(.failure(TestimonialKitError.parsingError("Faield to parse event response")))
+            }
+          case .failure(let error):
+            return .sendEvent(.failure(error))
+          }
+        default:
+          return .none
+        }
+      }
+      .sink { [weak self] decoded in
+        guard let self else { return }
+        Task { @MainActor in
+          self.apply(decoded)
+        }
       }
       .store(in: &cancellables)
   }
 
-  private static func handle(_ event: QueuedRequestResult) {
-    switch event.result {
-    case .success(let data):
-      handleSuccess(data: data, type: event.eventType)
-    case .failure(let error):
-      print("[TestimonialKit] Request failed:", error)
-    }
-  }
-
-  private static func handleSuccess(data: Data, type: APIEventType) {
-    switch type {
-    case .initSdk:
-      if let response = try? JSONDecoder().decode(SDKInitResponse.self, from: data) {
-        Task { @MainActor in
-          let manager = resolve(\.testimonialKitManager)
-          let config = resolve(\.configuration)
-          Storage.internalUserId = response.userId
-          Storage.requestCommentOnPositiveRating = response.requestCommentOnPositiveRating
-          config.userId = response.userId
-          print("★ TestimonialKit initialized successfully ★")
-        }
+  private func apply(_ event: DecodedQueueEvent) {
+    switch event {
+    case .initSdk(let result):
+      if case .success(let success) = result {
+        let manager = resolve(\.testimonialKitManager)
+        let config = resolve(\.configuration)
+        Storage.internalUserId = success.userId
+        Storage.requestCommentOnPositiveRating = success.requestCommentOnPositiveRating
+        config.userId = success.userId
+        print("★ TestimonialKit initialized successfully ★")
+      } else {
+        print("★ Failed to initialize TestimonialKit ★")
       }
-    case .sendEvent:
-      if let response = try? JSONDecoder().decode(AppEventLogResponse.self, from: data) {
-        print("★ Event sent:", response.message, "★")
+    case .sendEvent(let result):
+      if case .success(let success) = result {
+        print("★ Event sent:", success.message, "★")
+      } else {
+        print("Faith to send event: unknown error")
       }
     default:
       break
