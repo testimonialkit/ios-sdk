@@ -16,38 +16,42 @@ class PromptViewModel: ObservableObject {
   @Published var state: PromptViewState = .rating
   @Published var isLoading = false
 
+  // Re-entrancy guard for dismiss
+  private var didRequestDismiss = false
+
   init(promptManager: PromptManagerProtocol) {
     self.promptManager = promptManager
     promptManager.feedbackEventPublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] (event) in
         guard let self else { return }
-        defer { self.isLoading = false }
 
         switch event {
         case .rating(let data):
           if !data.isPositiveRating || data.requestComment {
-            self.state = .comment
-          } else if data.isPositiveRating && data.redirectAutomatically {
+            setStateDeferred(.comment)
+          } else if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
             self.promptManager.dismissPrompt(on: .storeReview(redirected: true))
-          } else if data.isPositiveRating {
-            self.state = .storeReview(redirected: false)
+          } else if data.isPositiveRating && data.hasAppStoreId {
+            setStateDeferred(.storeReview(redirected: false))
           } else {
-            self.state = .thankYou
+            setStateDeferred(.thankYou)
           }
 
         case .comment(let data):
-          if data.isPositiveRating && data.redirectAutomatically {
+          if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
             self.promptManager.dismissPrompt(on: .storeReview(redirected: true))
-          } else if data.isPositiveRating {
-            self.state = .storeReview(redirected: false)
+          } else if data.isPositiveRating && data.hasAppStoreId {
+            setStateDeferred(.storeReview(redirected: false))
           } else {
-            self.state = .thankYou
+            setStateDeferred(.thankYou)
           }
 
         case .error:
-          self.state = .thankYou
+          setStateDeferred(.thankYou)
         }
+
+        defer { self.isLoading = false }
       }
       .store(in: &cancellables)
   }
@@ -59,9 +63,9 @@ class PromptViewModel: ObservableObject {
     case .comment:
       handleSubmitComment()
     case .storeReview:
-      promptManager.dismissPrompt(on: .storeReview(redirected: true))
+      requestDismiss(as: .storeReview(redirected: true))
     case .thankYou:
-      promptManager.dismissPrompt(on: .thankYou)
+      requestDismiss(as: .thankYou)
     }
   }
 
@@ -73,6 +77,7 @@ class PromptViewModel: ObservableObject {
 
   func handleSubmitComment() {
     isLoading = true
+    dismissKeyboard()
     promptManager.logUserComment(comment: comment.isEmpty ? nil : comment)
   }
 
@@ -81,10 +86,39 @@ class PromptViewModel: ObservableObject {
   }
 
   func handleOnAppear() {
-    promptManager.logPromptShown()
+    // Avoid re-entrancy during transitions
+    DispatchQueue.main.async { [weak self] in
+      self?.promptManager.logPromptShown()
+    }
   }
 
   func handleOnDisappear() {
-    promptManager.logPromptDismissed()
+    // Avoid re-entrancy during transitions
+    DispatchQueue.main.async { [weak self] in
+      self?.promptManager.logPromptDismissed()
+    }
+  }
+
+  private func dismissKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+  }
+
+  private func setStateDeferred(_ newState: PromptViewState) {
+    guard state != newState else { return }
+    DispatchQueue.main.async { [weak self] in
+      self?.state = newState
+    }
+  }
+
+  private func requestDismiss(as finalState: PromptViewState) {
+    guard !didRequestDismiss else { return }
+    didRequestDismiss = true
+
+    // Reflect final state for UI immediately (safe), then defer external dismiss
+    state = finalState
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      self.promptManager.dismissPrompt(on: finalState)
+    }
   }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-class TestimonialKitConfig {
+final class TestimonialKitConfig: @unchecked Sendable {
   var apiKey: String
   let bundleId: String
   var userId: String

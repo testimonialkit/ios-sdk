@@ -17,15 +17,6 @@ protocol PromptManagerProtocol: AnyObject {
   func showPrompt()
 }
 
-enum DecodedQueueEvent {
-  case initSdk(Result<SDKInitResponse, Error>)
-  case sendEvent(Result<AppEventLogResponse, Error>)
-  case checkEligibility(Result<PromptEligibilityResponse, Error>)
-  case promptEvent(Result<PromptEventLogResponse, Error>)
-  case feedbackEvent(Result<FeedbackLogResponse, Error>)
-  case feedbackComment(Result<FeedbackLogResponse, Error>)
-}
-
 @MainActor
 final class PromptManager: PromptManagerProtocol {
   @Injected(\.requestQueue) var requestQueue
@@ -40,61 +31,66 @@ final class PromptManager: PromptManagerProtocol {
   private weak var presentedPromptVC: UIViewController?
   private var currentPromptConfig: PromptConfig = PromptConfig()
   let feedbackEventPublisher = PassthroughSubject<FeedbackEventType, Never>()
+  private var listenerTask: Task<Void, Never>?
 
   init(config: TestimonialKitConfig) {
     self.testimonialKitConfig = config
 
-    // Decode off-main, then hop to main for state/UI updates.
-    requestQueue.publisher
-      .receive(on: requestQueue.decodingQueue)
-      .compactMap { event -> DecodedQueueEvent? in
-        switch event.eventType {
-        case .checkPromptEligibility:
-          switch event.result {
-          case .success(let data):
-            let decoded = Result { try JSONDecoder().decode(PromptEligibilityResponse.self, from: data) }
-            return .checkEligibility(decoded)
-          case .failure(let error):
-            return .checkEligibility(.failure(error))
+    listenerTask = Task { [weak self] in
+      guard let self else { return }
+      let stream = await self.requestQueue.subscribe()   // await actor to fetch the single stream
+      for await event in stream {
+        // decode on background if you want
+        let decoded: DecodedQueueEvent = await withCheckedContinuation { cont in
+          DispatchQueue.global(qos: .utility).async {
+            cont.resume(returning: self.decode(event))
           }
-
-        case .sendPromptEvent:
-          switch event.result {
-          case .success(let data):
-            let decoded = Result { try JSONDecoder().decode(PromptEventLogResponse.self, from: data) }
-            return .promptEvent(decoded)
-          case .failure(let error):
-            return .promptEvent(.failure(error))
-          }
-
-        case .sendFeedbackEvent:
-          switch event.result {
-          case .success(let data):
-            let decoded = Result { try JSONDecoder().decode(FeedbackLogResponse.self, from: data) }
-            return .feedbackEvent(decoded)
-          case .failure(let error):
-            return .feedbackEvent(.failure(error))
-          }
-
-        case .sendFeedbackComment:
-          switch event.result {
-          case .success(let data):
-            let decoded = Result { try JSONDecoder().decode(FeedbackLogResponse.self, from: data) }
-            return .feedbackComment(decoded)
-          case .failure(let error):
-            return .feedbackComment(.failure(error))
-          }
-        case .initSdk, .sendEvent:
-          return .none
         }
+        await self.apply(decoded)  // hop back to @MainActor (self is @MainActor)
       }
-      .sink { [weak self] decoded in
-        guard let self else { return }
-        Task { @MainActor in
-          self.apply(decoded)
-        }
+    }
+  }
+
+  private nonisolated func decode(_ event: QueuedRequestResult) -> DecodedQueueEvent {
+    switch event.eventType {
+    case .checkPromptEligibility:
+      switch event.result {
+      case .success(let data):
+        let decoded = QueueResult { try JSONDecoder().decode(PromptEligibilityResponse.self, from: data) }
+        return .checkEligibility(decoded)
+      case .failure(let error):
+        return .checkEligibility(.failure(error))
       }
-      .store(in: &cancellables)
+
+    case .sendPromptEvent:
+      switch event.result {
+      case .success(let data):
+        let decoded = QueueResult { try JSONDecoder().decode(PromptEventLogResponse.self, from: data) }
+        return .promptEvent(decoded)
+      case .failure(let error):
+        return .promptEvent(.failure(error))
+      }
+
+    case .sendFeedbackEvent:
+      switch event.result {
+      case .success(let data):
+        let decoded = QueueResult { try JSONDecoder().decode(FeedbackLogResponse.self, from: data) }
+        return .feedbackEvent(decoded)
+      case .failure(let error):
+        return .feedbackEvent(.failure(error))
+      }
+
+    case .sendFeedbackComment:
+      switch event.result {
+      case .success(let data):
+        let decoded = QueueResult { try JSONDecoder().decode(FeedbackLogResponse.self, from: data) }
+        return .feedbackComment(decoded)
+      case .failure(let error):
+        return .feedbackComment(.failure(error))
+      }
+    default:
+      return .unhadnledEvent(event.eventType.rawValue)
+    }
   }
 
   private func apply(_ event: DecodedQueueEvent) {
@@ -113,7 +109,7 @@ final class PromptManager: PromptManagerProtocol {
         }
       case .failure(let error):
         feedbackEventPublisher.send(.error)
-        print("[PromptManager] Eligibility request failed:", error.localizedDescription)
+        print("[PromptManager] Eligibility request failed:", error.errorDescription)
       }
 
     case .promptEvent(let result):
@@ -130,7 +126,7 @@ final class PromptManager: PromptManagerProtocol {
         currentEligibility = nil
         currentPromptEvent = nil
         promptMetadata = nil
-        print("[PromptManager] Prompt event failed:", error.localizedDescription)
+        print("[PromptManager] Prompt event failed:", error.errorDescription)
       }
 
     case .feedbackEvent(let result):
@@ -141,7 +137,7 @@ final class PromptManager: PromptManagerProtocol {
         feedbackEventPublisher.send(.rating(data: response))
       case .failure(let error):
         feedbackEventPublisher.send(.error)
-        print("[PromptManager] Feedback request failed:", error.localizedDescription)
+        print("[PromptManager] Feedback request failed:", error.errorDescription)
       }
 
     case .feedbackComment(let result):
@@ -155,7 +151,7 @@ final class PromptManager: PromptManagerProtocol {
         }
       case .failure(let error):
         feedbackEventPublisher.send(.error)
-        print("[PromptManager] Comment request failed:", error.localizedDescription)
+        print("[PromptManager] Comment request failed:", error.errorDescription)
       }
     default:
       break
@@ -169,15 +165,15 @@ final class PromptManager: PromptManagerProtocol {
       return
     }
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.sendPromptEvent(
-          type: .promptShown,
-          previousEventId: currentEligibility.eventId,
-          feedbackEventId: nil,
-          metadata: promptMetadata
-        )
+    Task { [requestQueue, currentEligibility, apiClient, promptMetadata] in
+      let req = apiClient.sendPromptEvent(
+        type: .promptShown,
+        previousEventId: currentEligibility.eventId,
+        feedbackEventId: nil,
+        metadata: promptMetadata
       )
+      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.promptShown)
+      await requestQueue.enqueue(req)
     }
   }
 
@@ -189,30 +185,31 @@ final class PromptManager: PromptManagerProtocol {
       return
     }
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.sendPromptEvent(
-          type: .promptDismissed,
-          previousEventId: currentPromptEvent.eventId,
-          feedbackEventId: nil,
-          metadata: promptMetadata
-        )
+    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
+      let req = apiClient.sendPromptEvent(
+        type: .promptDismissed,
+        previousEventId: currentPromptEvent.eventId,
+        feedbackEventId: nil,
+        metadata: promptMetadata
       )
+
+      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.promptDismissed)
+      await requestQueue.enqueue(req)
     }
   }
 
   func logPromptDismissedAfterRating() {
     guard let currentFeedbackResponse, let currentPromptEvent, feedbackEventRegistered else { return }
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.sendPromptEvent(
-          type: .promptDismissedAfterRating,
-          previousEventId: currentPromptEvent.eventId,
-          feedbackEventId: currentFeedbackResponse.eventId,
-          metadata: promptMetadata
-        )
+    Task { [requestQueue, currentFeedbackResponse, currentPromptEvent, apiClient, promptMetadata] in
+      let req = apiClient.sendPromptEvent(
+        type: .promptDismissedAfterRating,
+        previousEventId: currentPromptEvent.eventId,
+        feedbackEventId: currentFeedbackResponse.eventId,
+        metadata: promptMetadata
       )
+      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.promptDismissedAfterRating)
+      await requestQueue.enqueue(req)
     }
 
     feedbackEventRegistered = false
@@ -221,45 +218,47 @@ final class PromptManager: PromptManagerProtocol {
   func logRedirectedToStore() {
     guard let currentPromptEvent else { return }
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.sendPromptEvent(
-          type: .redirectedToStore,
-          previousEventId: currentPromptEvent.eventId,
-          feedbackEventId: nil,
-          metadata: promptMetadata
-        )
+    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
+      let req = apiClient.sendPromptEvent(
+        type: .redirectedToStore,
+        previousEventId: currentPromptEvent.eventId,
+        feedbackEventId: nil,
+        metadata: promptMetadata
       )
+
+      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.redirectedToStore)
+      await requestQueue.enqueue(req)
     }
   }
 
   func logStoreReviewSkipped() {
     guard let currentPromptEvent else { return }
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.sendPromptEvent(
-          type: .storeReviewSkipped,
-          previousEventId: currentPromptEvent.eventId,
-          feedbackEventId: nil,
-          metadata: promptMetadata
-        )
+    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
+      let req = apiClient.sendPromptEvent(
+        type: .storeReviewSkipped,
+        previousEventId: currentPromptEvent.eventId,
+        feedbackEventId: nil,
+        metadata: promptMetadata
       )
+
+      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.storeReviewSkipped)
+      await requestQueue.enqueue(req)
     }
   }
 
   func logUserFeedback(rating: Int, comment: String? = nil) {
     guard let currentPromptEvent else { return }
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.sendFeedbackEvent(
-          promptEventId: currentPromptEvent.eventId,
-          rating: rating,
-          comment: comment,
-          metadata: promptMetadata
-        )
+    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
+      let req = apiClient.sendFeedbackEvent(
+        promptEventId: currentPromptEvent.eventId,
+        rating: rating,
+        comment: comment,
+        metadata: promptMetadata
       )
+      print("About to enqueue on", await requestQueue.debugId, "event:", req.eventType)
+      await requestQueue.enqueue(req)
     }
 
     feedbackEventRegistered = true
@@ -268,13 +267,14 @@ final class PromptManager: PromptManagerProtocol {
   func logUserComment(comment: String?) {
     guard let currentFeedbackResponse else { return }
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.sendFeedbackComment(
-          comment: comment,
-          feedbackEventId: currentFeedbackResponse.eventId
-        )
+    Task { [requestQueue, currentFeedbackResponse, apiClient] in
+      let req = apiClient.sendFeedbackComment(
+        comment: comment,
+        feedbackEventId: currentFeedbackResponse.eventId
       )
+
+      print("About to enqueue on", await requestQueue.debugId, "event:", APIEventType.sendFeedbackComment)
+      await requestQueue.enqueue(req)
     }
   }
 
@@ -282,10 +282,11 @@ final class PromptManager: PromptManagerProtocol {
     self.currentPromptConfig = config
     self.promptMetadata = metadata
 
-    Task {
-      await requestQueue.enqueue(
-        apiClient.checkPromptEligibility()
-      )
+    Task { [requestQueue, apiClient] in
+      let req = apiClient.checkPromptEligibility()
+
+      print("About to enqueue on", await requestQueue.debugId, "event:", APIEventType.checkPromptEligibility)
+      await requestQueue.enqueue(req)
     }
   }
 
@@ -316,5 +317,9 @@ final class PromptManager: PromptManagerProtocol {
     let hostingVC = PromptViewController(rootView: swiftUIView)
     presenter.present(hostingVC, animated: true)
     presentedPromptVC = hostingVC
+  }
+
+  deinit {
+    listenerTask?.cancel() // optional, just to be tidy
   }
 }

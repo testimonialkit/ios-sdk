@@ -3,12 +3,15 @@ import Factory
 import SwiftThemeKit
 
 struct PromptView: View {
-  let config: PromptConfig
+  private let config: PromptConfig
+  private let lightTheme: Theme
+  private let darkTheme: Theme
   @Environment(\.appTheme) var appTheme
   @StateObject private var viewModel = resolve(\.promptViewModel)
 
-  private var lightTheme: Theme {
-    .defaultLight.copy(
+  init(config: PromptConfig) {
+    self.config = config
+    self.lightTheme = .defaultLight.copy(
       colors: .defaultLight.copy(
         primary: config.tintColorDark
       ),
@@ -23,10 +26,8 @@ struct PromptView: View {
         variant: config.commentField.variant
       )
     )
-  }
 
-  private var darkTheme: Theme {
-    .defaultDark.copy(
+    self.darkTheme = .defaultDark.copy(
       colors: .defaultDark.copy(
         primary: config.tintColorDark
       ),
@@ -60,8 +61,8 @@ struct PromptView: View {
           thankYouView
         }
       }
-      .id(viewModel.state)
-//      .animation(.easeInOut(duration: 0.25), value: viewModel.state)
+      .showBranding()
+      .animation(.easeInOut(duration: 0.25), value: viewModel.state)
       .onAppear {
         viewModel.handleOnAppear()
       }
@@ -85,7 +86,6 @@ struct PromptView: View {
         viewModel.handleDismiss()
       }
     )
-    .showBranding()
     .transition(.opacity)
   }
 
@@ -102,7 +102,6 @@ struct PromptView: View {
         viewModel.handleDismiss()
       }
     )
-    .showBranding()
     .transition(.opacity)
   }
 
@@ -117,7 +116,6 @@ struct PromptView: View {
         viewModel.handleDismiss()
       }
     )
-    .showBranding()
     .transition(.opacity)
   }
 
@@ -132,7 +130,6 @@ struct PromptView: View {
         viewModel.handleDismiss()
       }
     )
-    .showBranding()
     .transition(.opacity)
   }
 }

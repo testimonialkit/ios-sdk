@@ -6,49 +6,44 @@ import Factory
 final class QueueResponseHandler {
   @Injected(\.requestQueue) var requestQueue
   private var cancellables = Set<AnyCancellable>()
+  private var listenerTask: Task<Void, Never>?
 
   init() {
-    startListening()
+    listenerTask = Task {
+      let stream = await self.requestQueue.subscribe()
+      for await event in stream {
+        // decode on background if you want
+        let decoded: DecodedQueueEvent = await withCheckedContinuation { cont in
+          DispatchQueue.global(qos: .utility).async {
+            cont.resume(returning: self.decode(event))
+          }
+        }
+        await self.apply(decoded)  // hop back to @MainActor (self is @MainActor)
+      }
+    }
   }
 
-  private func startListening() {
-    requestQueue.publisher
-      .receive(on: requestQueue.decodingQueue) // or background if needed
-      .compactMap { event -> DecodedQueueEvent? in
-        switch event.eventType {
-        case .initSdk:
-          switch event.result {
-          case .success(let data):
-            if let response = try? JSONDecoder().decode(SDKInitResponse.self, from: data) {
-              return .initSdk(.success(response))
-            } else {
-              return .initSdk(.failure(TestimonialKitError.parsingError("Failed to parse SDK init response")))
-            }
-          case .failure(let error):
-            return .initSdk(.failure(error))
-          }
-        case .sendEvent:
-          switch event.result {
-          case .success(let data):
-            if let response = try? JSONDecoder().decode(AppEventLogResponse.self, from: data) {
-              return .sendEvent(.success(response))
-            } else {
-              return .sendEvent(.failure(TestimonialKitError.parsingError("Faield to parse event response")))
-            }
-          case .failure(let error):
-            return .sendEvent(.failure(error))
-          }
-        default:
-          return .none
-        }
+  private nonisolated func decode(_ event: QueuedRequestResult) -> DecodedQueueEvent {
+    switch event.eventType {
+    case .initSdk:
+      switch event.result {
+      case .success(let data):
+        let result = QueueResult { try JSONDecoder().decode(SDKInitResponse.self, from: data) }
+        return .initSdk(result)
+      case .failure(let error):
+        return .initSdk(.failure(error))
       }
-      .sink { [weak self] decoded in
-        guard let self else { return }
-        Task { @MainActor in
-          self.apply(decoded)
-        }
+    case .sendEvent:
+      switch event.result {
+      case .success(let data):
+        let result = QueueResult { try JSONDecoder().decode(AppEventLogResponse.self, from: data) }
+        return .sendEvent(result)
+      case .failure(let error):
+        return .sendEvent(.failure(error))
       }
-      .store(in: &cancellables)
+    default:
+      return .unhadnledEvent(event.eventType.rawValue)
+    }
   }
 
   private func apply(_ event: DecodedQueueEvent) {
@@ -74,4 +69,6 @@ final class QueueResponseHandler {
       break
     }
   }
+
+  deinit { listenerTask?.cancel() }
 }

@@ -2,22 +2,19 @@ import Foundation
 @preconcurrency import Combine
 
 actor RequestQueue {
+  nonisolated var debugId: String { String(UInt(bitPattern: ObjectIdentifier(self))) }
   private var queue: [QueuedRequest] = []
   private var isProcessing = false
   private let saveURL: URL
   private let maxRetries = 3
   private let baseBackoff: TimeInterval = 0.8
 
-  let decodingQueue = DispatchQueue(label: "dev.testimonialkit.prompt.manager.decoding", qos: .utility)
-  private let subject = PassthroughSubject<QueuedRequestResult, Never>()
-  nonisolated let publisher: AnyPublisher<QueuedRequestResult, Never>
+  private var subs: [UUID: AsyncStream<QueuedRequestResult>.Continuation] = [:]
 
   init(filename: String = "queued_requests.json") {
     self.saveURL = FileManager.default
       .urls(for: .documentDirectory, in: .userDomainMask)[0]
       .appendingPathComponent(filename)
-
-    self.publisher = subject.eraseToAnyPublisher()
 
     if let data = try? Data(contentsOf: saveURL),
        let loaded = try? JSONDecoder().decode([QueuedRequest].self, from: data) {
@@ -29,19 +26,43 @@ actor RequestQueue {
     await processNextIfNeeded()
   }
 
+  // Each caller gets their own stream
+  func subscribe() -> AsyncStream<QueuedRequestResult> {
+    let id = UUID()
+    let (stream, cont) = AsyncStream<QueuedRequestResult>.makeStream(bufferingPolicy: .unbounded)
+
+    subs[id] = cont
+    cont.onTermination = { [weak self] _ in
+      Task { await self?.removeSub(id) } // hop back to actor to mutate subs
+    }
+
+    return stream
+  }
+
+  private func removeSub(_ id: UUID) {
+    subs.removeValue(forKey: id)
+  }
+
   func enqueue(_ request: QueuedRequest) async {
-    queue.append(request)
+    print("RequestQueue \(debugId) enqueue:", request.eventType)
+    await queue.append(request)
     await saveQueue()
     await processNextIfNeeded()
+  }
+
+  func enqueue(_ builder: @escaping @Sendable () -> QueuedRequest) async {
+    await self.enqueue(builder())
   }
 
   // MARK: Internals
 
   private func emit(_ value: QueuedRequestResult) {
-    self.subject.send(value)
+    for (_, cont) in subs {
+      cont.yield(value)
+    }
   }
 
-  private func processNextIfNeeded() async {
+  private func processNextIfNeeded(isRetrying: Bool = false) async {
     guard !isProcessing, !queue.isEmpty else { return }
 
     isProcessing = true
@@ -50,10 +71,18 @@ actor RequestQueue {
 
     do {
       let data = try await next.execute()
-      emit(.init(eventType: next.eventType, result: .success(data), metadata: next.metadata))
+      if !isRetrying {
+        await emit(.init(eventType: next.eventType, result: .success(data)))
+      }
       await finish(next: next, error: nil)
     } catch {
-      emit(.init(eventType: next.eventType, result: .failure(error), metadata: next.metadata))
+      if !isRetrying {
+        if let error = error as? QueueFailure {
+          await emit(.init(eventType: next.eventType, result: .failure(error)))
+        } else {
+          await emit(.init(eventType: next.eventType, result: .failure(.init(error))))
+        }
+      }
       await finish(next: next, error: error)
     }
   }
@@ -78,7 +107,7 @@ actor RequestQueue {
   private func enqueueFrontAndKick(_ request: QueuedRequest) async {
     queue.insert(request, at: 0)
     await saveQueue()
-    await processNextIfNeeded() // IMPORTANT: restart processing after delayed insert
+    await processNextIfNeeded(isRetrying: true) // IMPORTANT: restart processing after delayed insert
   }
 
   private func backoff(for attempt: Int) -> TimeInterval {
