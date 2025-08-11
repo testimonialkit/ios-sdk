@@ -8,7 +8,7 @@ struct PromptThankYou: View {
   var onDissmiss: () -> Void
 
   var body: some View {
-    VStack(spacing: 43) {
+    VStack(spacing: 53.5) {
       PromptHeader(
         title: strings.title,
         subtitle: strings.message

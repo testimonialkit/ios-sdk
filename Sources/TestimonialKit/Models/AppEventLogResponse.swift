@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppEventLogResponse: Decodable {
+struct AppEventLogResponse: Decodable, Sendable {
   let message: String
   let eventId: String
 }
