@@ -1,5 +1,3 @@
-# TestimonialKit iOS SDK
-
 # TestimonialKit
 
 <aside>
