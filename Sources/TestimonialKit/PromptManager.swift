@@ -103,13 +103,13 @@ final class PromptManager: PromptManagerProtocol {
 
         if response.eligible {
           showPrompt()
-          print("[PromptManager] User eligible for prompt")
+          Logger.shared.debug("User eligible for prompt")
         } else {
-          print("[PromptManager] User not eligible for prompt:", response.reason ?? "Unknown reason")
+          Logger.shared.debug("User not eligible for prompt: \(response.reason ?? "Unknown reason")")
         }
       case .failure(let error):
         feedbackEventPublisher.send(.error)
-        print("[PromptManager] Eligibility request failed:", error.errorDescription)
+        Logger.shared.debug("Eligibility request failed: \(error.errorDescription)")
       }
 
     case .promptEvent(let result):
@@ -121,37 +121,33 @@ final class PromptManager: PromptManagerProtocol {
           currentPromptEvent = nil
           promptMetadata = nil
         }
-        print("[PromptManager] Prompt event logged:", response.status.rawValue)
+        Logger.shared.debug("Prompt event logged: \(response.status.rawValue)")
       case .failure(let error):
         currentEligibility = nil
         currentPromptEvent = nil
         promptMetadata = nil
-        print("[PromptManager] Prompt event failed:", error.errorDescription)
+        Logger.shared.debug("Prompt event failed: \(error.errorDescription)")
       }
 
     case .feedbackEvent(let result):
       switch result {
       case .success(let response):
         currentFeedbackResponse = response
-        print("[PromptManager] Feedback event logged")
         feedbackEventPublisher.send(.rating(data: response))
+        Logger.shared.debug("Feedback event logged")
       case .failure(let error):
         feedbackEventPublisher.send(.error)
-        print("[PromptManager] Feedback request failed:", error.errorDescription)
+        Logger.shared.debug("Feedback request failed: \(error.errorDescription)")
       }
 
     case .feedbackComment(let result):
       switch result {
       case .success(let response):
-        print("[PromptManager] Comment saved successfully")
-        if let currentFeedbackResponse {
-          feedbackEventPublisher.send(.comment(data: currentFeedbackResponse))
-        } else {
-          feedbackEventPublisher.send(.error)
-        }
+        feedbackEventPublisher.send(.comment(data: response))
+        Logger.shared.debug("Comment saved successfully")
       case .failure(let error):
         feedbackEventPublisher.send(.error)
-        print("[PromptManager] Comment request failed:", error.errorDescription)
+        Logger.shared.debug("Comment request failed: \(error.errorDescription)")
       }
     default:
       break
@@ -161,7 +157,7 @@ final class PromptManager: PromptManagerProtocol {
 
   func logPromptShown() {
     guard let currentEligibility else {
-      print("[Prompt] No eligibility data available.")
+      Logger.shared.debug("No eligibility data available.")
       return
     }
 
@@ -172,7 +168,9 @@ final class PromptManager: PromptManagerProtocol {
         feedbackEventId: nil,
         metadata: promptMetadata
       )
-      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.promptShown)
+
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptShown)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
   }
@@ -193,7 +191,8 @@ final class PromptManager: PromptManagerProtocol {
         metadata: promptMetadata
       )
 
-      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.promptDismissed)
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissed)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
   }
@@ -208,7 +207,9 @@ final class PromptManager: PromptManagerProtocol {
         feedbackEventId: currentFeedbackResponse.eventId,
         metadata: promptMetadata
       )
-      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.promptDismissedAfterRating)
+
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissedAfterRating)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
 
@@ -226,7 +227,8 @@ final class PromptManager: PromptManagerProtocol {
         metadata: promptMetadata
       )
 
-      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.redirectedToStore)
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.redirectedToStore)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
   }
@@ -242,7 +244,8 @@ final class PromptManager: PromptManagerProtocol {
         metadata: promptMetadata
       )
 
-      print("About to enqueue on", await requestQueue.debugId, "event:", PromptEventType.storeReviewSkipped)
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.storeReviewSkipped)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
   }
@@ -257,7 +260,9 @@ final class PromptManager: PromptManagerProtocol {
         comment: comment,
         metadata: promptMetadata
       )
-      print("About to enqueue on", await requestQueue.debugId, "event:", req.eventType)
+
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(req.eventType)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
 
@@ -273,7 +278,8 @@ final class PromptManager: PromptManagerProtocol {
         feedbackEventId: currentFeedbackResponse.eventId
       )
 
-      print("About to enqueue on", await requestQueue.debugId, "event:", APIEventType.sendFeedbackComment)
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.sendFeedbackComment)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
   }
@@ -285,7 +291,8 @@ final class PromptManager: PromptManagerProtocol {
     Task { [requestQueue, apiClient] in
       let req = apiClient.checkPromptEligibility()
 
-      print("About to enqueue on", await requestQueue.debugId, "event:", APIEventType.checkPromptEligibility)
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.checkPromptEligibility)"
+      Logger.shared.verbose(logMessage)
       await requestQueue.enqueue(req)
     }
   }
@@ -309,7 +316,7 @@ final class PromptManager: PromptManagerProtocol {
 
   func showPrompt() {
     guard let presenter = UIViewController.topMost else {
-      print("[PromptManager] No presenter available")
+      Logger.shared.warning("No presenter available")
       return
     }
 

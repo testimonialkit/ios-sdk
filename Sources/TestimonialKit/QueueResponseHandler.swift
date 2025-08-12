@@ -49,21 +49,23 @@ final class QueueResponseHandler {
   private func apply(_ event: DecodedQueueEvent) {
     switch event {
     case .initSdk(let result):
-      if case .success(let success) = result {
+      switch result {
+      case .success(let success):
         let manager = resolve(\.testimonialKitManager)
         let config = resolve(\.configuration)
         Storage.internalUserId = success.userId
         Storage.requestCommentOnPositiveRating = success.requestCommentOnPositiveRating
         config.userId = success.userId
-        print("★ TestimonialKit initialized successfully ★")
-      } else {
-        print("★ Failed to initialize TestimonialKit ★")
+        Logger.shared.info("★ Initialized successfully ★")
+      case .failure(let queueFailure):
+        Logger.shared.warning("Failed to initialize: \(queueFailure.errorDescription ?? "unknown error")")
       }
     case .sendEvent(let result):
-      if case .success(let success) = result {
-        print("★ Event sent:", success.message, "★")
-      } else {
-        print("Faith to send event: unknown error")
+      switch result {
+      case .success(let success):
+        Logger.shared.debug("★ Event sent: \(success.message) ★")
+      case .failure(let queueFailure):
+        Logger.shared.debug("Faith to send event: \(queueFailure.errorDescription ?? "unknown error")")
       }
     default:
       break

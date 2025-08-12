@@ -34,11 +34,6 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
   func setup(with apiKey: String) {
     config.apiKey = apiKey
     configure()
-    Task {
-      await requestQueue.enqueue(
-        apiClient.initSdk()
-      )
-    }
   }
 
   func trackEvent(
@@ -48,14 +43,16 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
     metadata: [String: String]? = nil
   ) {
     Task {
-      await requestQueue.enqueue(
-        apiClient.sendAppEvent(
+      let req = apiClient.sendAppEvent(
           name: name,
           score: score,
           type: type,
           metadata: metadata
         )
-      )
+
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.sendEvent)"
+      Logger.shared.verbose(logMessage)
+      await requestQueue.enqueue(req)
     }
   }
 
@@ -64,6 +61,11 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
   }
 
   private func configure() {
-    Task { await requestQueue.configure() }
+    Task {
+      await requestQueue.configure()
+      await requestQueue.enqueue(
+        apiClient.initSdk()
+      )
+    }
   }
 }
