@@ -56,6 +56,7 @@ final class QueueResponseHandler {
         Storage.internalUserId = success.userId
         Storage.requestCommentOnPositiveRating = success.requestCommentOnPositiveRating
         config.userId = success.userId
+        config.hasActiveSubscription = success.hasActiveSubscription
         Logger.shared.info("★ Initialized successfully ★")
       case .failure(let queueFailure):
         Logger.shared.warning("Failed to initialize: \(queueFailure.errorDescription ?? "unknown error")")
