@@ -2,6 +2,14 @@ import SwiftUI
 @preconcurrency import Combine
 import Factory
 
+#if canImport(UIKit)
+import UIKit
+public typealias PlatformViewController = UIViewController
+#elseif canImport(AppKit)
+import AppKit
+public typealias PlatformViewController = NSViewController
+#endif
+
 /// Represents the lifecycle of the in-app feedback prompt.
 /// The state machine is advanced by network results (via the RequestQueue stream)
 /// and by user interactions with the presented UI.
@@ -97,7 +105,7 @@ actor PromptManager: PromptManagerProtocol {
   /// Completion callbacks to invoke once the prompt flow finishes. Indexed by UUID.
   private var completionHandlers: [UUID: ((PromptResult) -> Void)] = [:]
   /// Weak reference to the currently presented prompt view controller (main-actor only).
-  private nonisolated(unsafe) var _presentedPromptVC: UIViewController?
+  private nonisolated(unsafe) var _presentedPromptVC: PlatformViewController?
   /// The runtime configuration used when presenting the current prompt.
   private var currentPromptConfig: PromptConfig = PromptConfig()
 
@@ -281,7 +289,7 @@ actor PromptManager: PromptManagerProtocol {
       metadata: promptMetadata
     )
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptShown)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.promptShown)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
   }
@@ -302,7 +310,7 @@ actor PromptManager: PromptManagerProtocol {
       metadata: promptMetadata
     )
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissed)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.promptDismissed)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
   }
@@ -318,7 +326,7 @@ actor PromptManager: PromptManagerProtocol {
       metadata: promptMetadata
     )
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissedAfterRating)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.promptDismissedAfterRating)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
 
@@ -336,7 +344,7 @@ actor PromptManager: PromptManagerProtocol {
       metadata: promptMetadata
     )
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.redirectedToStore)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.redirectedToStore)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
   }
@@ -352,7 +360,7 @@ actor PromptManager: PromptManagerProtocol {
       metadata: promptMetadata
     )
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.storeReviewSkipped)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.storeReviewSkipped)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
   }
@@ -372,7 +380,7 @@ actor PromptManager: PromptManagerProtocol {
       metadata: promptMetadata
     )
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(req.eventType)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(req.eventType)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
 
@@ -389,7 +397,7 @@ actor PromptManager: PromptManagerProtocol {
       feedbackEventId: currentFeedbackResponse.eventId
     )
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.sendFeedbackComment)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(APIEventType.sendFeedbackComment)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
   }
@@ -418,7 +426,7 @@ actor PromptManager: PromptManagerProtocol {
     promptState = .checkingForEligibility
     let req = apiClient.checkPromptEligibility()
 
-    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.checkPromptEligibility)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(APIEventType.checkPromptEligibility)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
   }
@@ -430,39 +438,52 @@ actor PromptManager: PromptManagerProtocol {
 
     // UI operations must run on main thread
     await MainActor.run {
+      #if canImport(UIKit)
       self._presentedPromptVC?.dismiss(animated: true) {
-        // Hop back to actor for state handling
-        Task {
-          await self.handlePromptDismissAction(on: state)
-        }
+        Task { await self.handlePromptDismissAction(on: state) }
       }
+      #elseif canImport(AppKit)
+      self._presentedPromptVC?.dismiss(nil)
+      Task { await self.handlePromptDismissAction(on: state) }
+      #endif
       self._presentedPromptVC = nil
     }
   }
 
-  /// Presents the prompt modally from the top-most view controller. Must be called on the main actor.
-  /// Does nothing if the state machine is not in the `.eligible` state or if no presenter is available.
+  /// Presents the prompt modally from the top-most view controller on the current platform.
+  /// On iOS it uses a sheet; on macOS it presents as a sheet from the top-most NSViewController.
   func showPrompt() async {
-    guard await promptState == .eligible else {
+    guard promptState == .eligible else {
       Logger.shared.warning("Prompt state is not eligible")
       return
     }
 
+    #if canImport(UIKit)
     guard let presenter = await UIViewController.topMost else {
       Logger.shared.warning("No presenter available")
       return
     }
+    #elseif canImport(AppKit)
+    guard let presenter = await NSViewController.topMost else {
+      Logger.shared.warning("No presenter available (macOS)")
+      return
+    }
+    #endif
 
     promptState = .showing
     await MainActor.run { [currentPromptConfig] in
       let swiftUIView = PromptView(config: currentPromptConfig)
       let hostingVC = PromptViewController(rootView: swiftUIView)
+
+      #if canImport(UIKit)
       presenter.present(hostingVC, animated: true) {
-        // We need to hop back to the actor context
-        Task {
-          await self.promptWasShown()
-        }
+        Task { await self.promptWasShown() }
       }
+      #elseif canImport(AppKit)
+      presenter.presentAsSheet(hostingVC)
+      Task { await self.promptWasShown() }
+      #endif
+
       _presentedPromptVC = hostingVC
     }
   }

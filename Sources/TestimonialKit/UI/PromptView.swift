@@ -153,7 +153,3 @@ struct PromptView: View {
     .transition(.opacity)
   }
 }
-
-#Preview {
-  PromptView(config: PromptConfig())
-}

@@ -2,6 +2,13 @@ import SwiftUI
 import Combine
 import Factory
 
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
+
 /// Represents the different UI states in the feedback prompt flow.
 /// Used by `PromptViewModel` to drive the view based on backend events and user actions.
 enum PromptViewState: Equatable, Sendable {
@@ -93,7 +100,7 @@ class PromptViewModel: ObservableObject {
           setStateDeferred(.thankYou(data: nil))
         }
 
-        defer { self.isLoading = false }
+        do { self.isLoading = false }
       }
       .store(in: &cancellables)
   }
@@ -163,6 +170,8 @@ class PromptViewModel: ObservableObject {
       return
     }
 
+    #if canImport(UIKit)
+    // iOS / iPadOS: use itms-apps URL scheme to open the App Store review page
     guard let url = URL(string: "itms-apps://itunes.apple.com/app/\(appStoreID)?action=write-review") else {
       Logger.shared.debug("Invalid store URL")
       requestDismiss(as: .storeReview(redirected: false, data: data))
@@ -171,22 +180,45 @@ class PromptViewModel: ObservableObject {
 
     if UIApplication.shared.canOpenURL(url) {
       UIApplication.shared.open(url, options: [:]) { [weak self] success in
-        if !success {
-          Logger.shared.debug("Failed to open AppStore")
-          self?.requestDismiss(as: .storeReview(redirected: false, data: data))
+        guard let self else { return }
+        if success {
+          self.requestDismiss(as: .storeReview(redirected: true, data: data))
         } else {
-          self?.requestDismiss(as: .storeReview(redirected: true, data: data))
+          Logger.shared.debug("Failed to open AppStore")
+          self.requestDismiss(as: .storeReview(redirected: false, data: data))
         }
       }
     } else {
       Logger.shared.debug("Can not open URL")
       requestDismiss(as: .storeReview(redirected: false, data: data))
     }
+    #elseif canImport(AppKit)
+    // macOS: prefer macappstore://, fall back to https://apps.apple.com
+    let primary = URL(string: "macappstore://itunes.apple.com/app/id\(appStoreID)?mt=12&action=write-review")
+    let fallback = URL(string: "https://apps.apple.com/app/id\(appStoreID)?action=write-review")
+
+    if let url = primary, NSWorkspace.shared.open(url) {
+      requestDismiss(as: .storeReview(redirected: true, data: data))
+    } else if let url = fallback, NSWorkspace.shared.open(url) {
+      requestDismiss(as: .storeReview(redirected: true, data: data))
+    } else {
+      Logger.shared.debug("Failed to open App Store on macOS")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
+    }
+    #else
+    // Unsupported platform
+    Logger.shared.debug("App Store redirect unsupported on this platform")
+    requestDismiss(as: .storeReview(redirected: false, data: data))
+    #endif
   }
 
   /// Programmatically dismisses the on-screen keyboard.
   private func dismissKeyboard() {
+    #if canImport(UIKit)
     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    #elseif canImport(AppKit)
+    NSApp.keyWindow?.makeFirstResponder(nil)
+    #endif
   }
 
   /// Changes the state on the main thread if it's different from the current one.

@@ -105,7 +105,7 @@ final class APIClient: APIClientProtocol {
   /// Concrete implementation of `checkPromptEligibility()`.
   /// Creates a queued request to check if a prompt should be displayed to the user.
   func checkPromptEligibility() -> QueuedRequest {
-    var body: [String: Any] = [
+    let body: [String: Any] = [
       "appVersion": config.appVersion,
       "userId": config.userId,
       "locale": config.countryCode,
@@ -185,9 +185,12 @@ final class APIClient: APIClientProtocol {
       "userId": config.userId,
       "status": type.rawValue,
       "previousEventId": previousEventId,
-      "appVersion": config.appVersion,
-      "feedbackEventId": feedbackEventId
+      "appVersion": config.appVersion
     ]
+
+    if let feedbackEventId {
+      body["feedbackEventId"] = feedbackEventId
+    }
 
     if let metadata {
       body["metadata"] = metadata
@@ -227,9 +230,12 @@ final class APIClient: APIClientProtocol {
       "userId": config.userId,
       "rating": rating,
       "promptEventId": promptEventId,
-      "comment": comment,
       "appVersion": config.appVersion
     ]
+
+    if let comment {
+      body["comment"] = comment
+    }
 
     if let metadata {
       body["metadata"] = metadata
@@ -256,10 +262,13 @@ final class APIClient: APIClientProtocol {
   ///   - feedbackEventId: The ID of the feedback event to update.
   func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest {
     var body: [String: Any] = [
-      "comment": comment,
       "feedbackEventId": feedbackEventId,
       "userId": config.userId
     ]
+
+    if let comment {
+      body["comment"] = comment
+    }
 
     return QueuedRequest(
       eventType: .sendFeedbackComment,
