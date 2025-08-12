@@ -183,7 +183,7 @@ TestimonialKit.promptIfPossible(
 
 ## Requirements
 
-- iOS 14.0+
+- iOS 15.0+
 - Swift 5.5+
 - Xcode 13.0+
 
