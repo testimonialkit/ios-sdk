@@ -30,7 +30,7 @@ final class QueueResponseHandler {
           }
         }
         /// Switch back to the main actor (this type is `@MainActor`) to perform UI‑adjacent side effects.
-        await self.apply(decoded)
+        self.apply(decoded)
       }
     }
   }
@@ -76,7 +76,6 @@ final class QueueResponseHandler {
     case .initSdk(let result):
       switch result {
       case .success(let success):
-        let manager = resolve(\.testimonialKitManager)
         let config = resolve(\.configuration)
         Storage.internalUserId = success.userId
         Storage.requestCommentOnPositiveRating = success.requestCommentOnPositiveRating

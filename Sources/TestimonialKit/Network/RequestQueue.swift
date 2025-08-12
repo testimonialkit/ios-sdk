@@ -74,7 +74,7 @@ actor RequestQueue {
   /// - Parameter request: The request to enqueue.
   func enqueue(_ request: QueuedRequest) async {
     Logger.shared.verbose("RequestQueue \(debugId) enqueue: \(request.eventType)")
-    await queue.append(request)
+    queue.append(request)
     await saveQueue()
     await processNextIfNeeded()
   }
@@ -108,15 +108,15 @@ actor RequestQueue {
     do {
       let data = try await next.execute()
       if !isRetrying {
-        await emit(.init(eventType: next.eventType, result: .success(data)))
+        emit(.init(eventType: next.eventType, result: .success(data)))
       }
       await finish(next: next, error: nil)
     } catch {
       if !isRetrying {
         if let error = error as? QueueFailure {
-          await emit(.init(eventType: next.eventType, result: .failure(error)))
+          emit(.init(eventType: next.eventType, result: .failure(error)))
         } else {
-          await emit(.init(eventType: next.eventType, result: .failure(.init(error))))
+          emit(.init(eventType: next.eventType, result: .failure(.init(error))))
         }
       }
       await finish(next: next, error: error)

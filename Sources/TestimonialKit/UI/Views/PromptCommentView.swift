@@ -32,7 +32,27 @@ struct PromptCommentView: View {
       )
 
       Group {
-        /// For iOS 16 and later, use a multiline TextField with theming applied and a line limit of 2–6.
+        #if canImport(AppKit)
+        /// macOS: use a styled `TextEditor` with placeholder overlay.
+        ZStack(alignment: .topLeading) {
+          /// Placeholder text shown when the comment field is empty.
+          if comment.isEmpty {
+            Text(strings.placeholder)
+              .foregroundColor(.secondary)
+              .padding(.horizontal, 12)
+              .padding(.vertical, 10)
+          }
+          TextEditor(text: $comment)
+            .frame(minHeight: 96, maxHeight: 200)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+        }
+        .overlay(
+          RoundedRectangle(cornerRadius: appTheme.textFields.shape.radius(for: appTheme))
+            .stroke(.xs)
+        )
+        #else
+        /// iOS: use multiline TextField on iOS 16+, TextEditor fallback on earlier versions.
         if #available(iOS 16.0, *) {
           // Multiline TextField (keeps your TextField-based styles)
           TextField(strings.placeholder, text: $comment, axis: .vertical)
@@ -58,6 +78,7 @@ struct PromptCommentView: View {
               .stroke(.xs)
           )
         }
+        #endif
       }
 
       VStack(spacing: 16) {

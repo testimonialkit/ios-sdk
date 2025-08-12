@@ -87,18 +87,17 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
     metadata: [String: String]? = nil
   ) {
     Task { [weak self] in
-      let req = self?.apiClient.sendAppEvent(
+      guard let self else { return }
+      let req = self.apiClient.sendAppEvent(
         name: name,
         score: score,
         type: type,
         metadata: metadata
       )
 
-      guard let req else { return }
-
-      let logMessage = "About to enqueue on \(await self?.requestQueue.debugId) event: \(APIEventType.sendEvent)"
+      let logMessage = "About to enqueue on \(self.requestQueue.debugId) event: \(APIEventType.sendEvent)"
       Logger.shared.verbose(logMessage)
-      await self?.requestQueue.enqueue(req)
+      await self.requestQueue.enqueue(req)
     }
   }
 

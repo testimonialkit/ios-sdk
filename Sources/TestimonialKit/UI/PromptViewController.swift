@@ -12,6 +12,9 @@ protocol PromptViewControllerDelegate: AnyObject {
   func promptViewControllerDidDisappear()
 }
 
+#if canImport(UIKit)
+import UIKit
+
 /// A `UIHostingController` wrapper that presents SwiftUI content in a sheet with a dynamic detent
 /// sized to the content's intrinsic height at the current width.
 ///
@@ -98,3 +101,58 @@ class PromptViewController<Content: View>: UIHostingController<Content> {
     delegate?.promptViewControllerDidDisappear()
   }
 }
+#endif
+
+#if canImport(AppKit)
+import AppKit
+
+/// A `NSHostingController` wrapper that presents SwiftUI content in a macOS sheet sized
+/// to the content’s intrinsic height at the current window width. The controller forwards
+/// appear/disappear events to a delegate.
+class PromptViewController<Content: View>: NSHostingController<Content> {
+  /// Receiver of appear/disappear callbacks for this prompt controller.
+  weak var delegate: PromptViewControllerDelegate?
+
+  /// Updates the preferred content size to match the SwiftUI view’s fitting size at the
+  /// current window width. Call on layout and when the window changes size.
+  private func updatePreferredSize() {
+    // Ensure layout is up-to-date to get a correct fitting size.
+    view.layoutSubtreeIfNeeded()
+
+    // Use the window’s content width if available; otherwise, keep the current width.
+    let targetWidth: CGFloat = view.window?.contentLayoutRect.width ?? view.bounds.width
+    var size = view.fittingSize
+    size.width = max(targetWidth, 0)
+    // Guard against zero/invalid heights; give a sensible minimum.
+    if !size.height.isFinite || size.height <= 0 { size.height = 200 }
+
+    preferredContentSize = size
+
+    // If presented as a sheet, resizing the sheet’s window gives a better experience.
+    if let sheet = view.window {
+      sheet.setContentSize(size)
+    }
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    updatePreferredSize()
+  }
+
+  override func viewDidLayout() {
+    super.viewDidLayout()
+    updatePreferredSize()
+  }
+
+  override func viewDidAppear() {
+    super.viewDidAppear()
+    updatePreferredSize()
+    delegate?.promptViewControllerDidAppear()
+  }
+
+  override func viewDidDisappear() {
+    super.viewDidDisappear()
+    delegate?.promptViewControllerDidDisappear()
+  }
+}
+#endif
