@@ -2,30 +2,61 @@ import SwiftUI
 import Combine
 import Factory
 
+/// Represents the different UI states in the feedback prompt flow.
+/// Used by `PromptViewModel` to drive the view based on backend events and user actions.
 enum PromptViewState: Equatable, Sendable {
+  /// The initial state where the user can provide a star rating.
   case rating
+  /// State where the user is prompted to leave a text comment, optionally with a rating.
+  /// - Parameter data: The feedback log data from the backend.
   case comment(data: FeedbackLogResponse)
+  /// State showing a thank-you message after feedback submission.
+  /// - Parameter data: Optional feedback data if available.
   case thankYou(data: FeedbackLogResponse?)
+  /// State for directing the user to the App Store review screen.
+  /// - Parameters:
+  ///   - redirected: Indicates whether the user was redirected successfully.
+  ///   - data: Feedback log data from the backend.
   case storeReview(redirected: Bool, data: FeedbackLogResponse)
 }
 
+/// View model driving the state and actions of the feedback prompt UI.
+///
+/// Listens to `PromptManagerProtocol` feedback events and updates the UI accordingly.
+/// Provides methods for handling user actions such as submitting ratings/comments,
+/// dismissing the prompt, and redirecting to the App Store review page.
 @MainActor
 class PromptViewModel: ObservableObject {
+  /// Retains Combine subscriptions for the lifetime of the view model.
   private var cancellables = Set<AnyCancellable>()
+  /// The prompt manager responsible for managing prompt lifecycle and logging.
   private let promptManager: PromptManagerProtocol
+  /// SDK configuration containing subscription and environment details.
   private let sdkConfig: TestimonialKitConfig
+  /// The selected star rating from the user.
   @Published var rating: Int = 0
+  /// The optional comment text provided by the user.
   @Published var comment: String = ""
+  /// Current UI state of the prompt.
   @Published var state: PromptViewState = .rating
+  /// Indicates whether a network request or action is in progress.
   @Published var isLoading = false
 
+  /// Whether to display SDK branding in the prompt UI.
+  /// Branding is hidden for active subscription holders.
   var showBranding: Bool {
     !sdkConfig.hasActiveSubscription
   }
 
-  // Re-entrancy guard for dismiss
+  /// Guards against multiple prompt dismiss requests.
   private var didRequestDismiss = false
 
+  /// Creates a new `PromptViewModel`.
+  /// - Parameters:
+  ///   - promptManager: The manager to coordinate prompt logic.
+  ///   - sdkConfig: The current SDK configuration.
+  ///
+  /// Subscribes to `feedbackEventPublisher` to react to feedback events from the manager.
   init(promptManager: PromptManagerProtocol, sdkConfig: TestimonialKitConfig) {
     self.promptManager = promptManager
     self.sdkConfig = sdkConfig
@@ -34,6 +65,7 @@ class PromptViewModel: ObservableObject {
       .sink { [weak self] (event) in
         guard let self else { return }
 
+        /// Handle a rating event: determine next state based on positivity, comment request, and App Store redirect settings.
         switch event {
         case .rating(let data):
           if !data.isPositiveRating || data.requestComment {
@@ -46,6 +78,7 @@ class PromptViewModel: ObservableObject {
             setStateDeferred(.thankYou(data: data))
           }
 
+        /// Handle a comment event: determine next state similarly, possibly showing store review or thank-you.
         case .comment(let data):
           if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
             self.redirectToAppStoreReview(data: data)
@@ -55,6 +88,7 @@ class PromptViewModel: ObservableObject {
             setStateDeferred(.thankYou(data: data))
           }
 
+        /// Handle an error event: go directly to thank-you with no feedback data.
         case .error:
           setStateDeferred(.thankYou(data: nil))
         }
@@ -64,6 +98,7 @@ class PromptViewModel: ObservableObject {
       .store(in: &cancellables)
   }
 
+  /// Handles submission based on the current prompt state.
   func handleSubmit() {
     switch state {
     case .rating:
@@ -77,6 +112,7 @@ class PromptViewModel: ObservableObject {
     }
   }
 
+  /// Sends the selected rating to the prompt manager.
   func handleSubmitRating() {
     if rating == 0 { return }
     isLoading = true
@@ -86,6 +122,7 @@ class PromptViewModel: ObservableObject {
     }
   }
 
+  /// Sends the entered comment to the prompt manager.
   func handleSubmitComment() {
     isLoading = true
     dismissKeyboard()
@@ -95,6 +132,7 @@ class PromptViewModel: ObservableObject {
     }
   }
 
+  /// Handles dismissal logic depending on the current state.
   func handleDismiss() {
     if case .comment(let data) = state {
       if data.isPositiveRating && data.hasAppStoreId {
@@ -107,6 +145,7 @@ class PromptViewModel: ObservableObject {
     }
   }
 
+  /// Called when the prompt view disappears; notifies the manager of dismissal.
   func handleOnDisappear() {
     Task { [weak self] in
       guard let self else { return }
@@ -114,6 +153,7 @@ class PromptViewModel: ObservableObject {
     }
   }
 
+  /// Attempts to open the App Store review page for the app using the provided feedback data.
   func redirectToAppStoreReview(data: FeedbackLogResponse) {
     let appStoreID = data.appStoreId ?? ""
 
@@ -144,10 +184,12 @@ class PromptViewModel: ObservableObject {
     }
   }
 
+  /// Programmatically dismisses the on-screen keyboard.
   private func dismissKeyboard() {
     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
   }
 
+  /// Changes the state on the main thread if it's different from the current one.
   private func setStateDeferred(_ newState: PromptViewState) {
     guard state != newState else { return }
     DispatchQueue.main.async { [weak self] in
@@ -155,6 +197,7 @@ class PromptViewModel: ObservableObject {
     }
   }
 
+  /// Requests prompt dismissal via the prompt manager, ensuring it's done only once.
   private func requestDismiss(as finalState: PromptViewState) {
     guard !didRequestDismiss else { return }
     didRequestDismiss = true
