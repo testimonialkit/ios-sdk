@@ -26,7 +26,7 @@ public class TestimonialKit {
   public static func promptIfPossible(
     metadata: [String: String]? = nil,
     promptConfig: PromptConfig = PromptConfig(),
-    completion: ((PromptResult) -> Void)? = nil
+    completion: (@Sendable (PromptResult) -> Void)? = nil
   ) {
     let manager = resolve(\.testimonialKitManager)
     manager.promptIfPossible(

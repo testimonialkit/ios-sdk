@@ -1,4 +1,4 @@
-# TestimonialKit
+# TestimonialKit iOS SDK
 
 <aside>
 🚀 Boost your App Store ratings by smartly prompting your happiest users
@@ -16,12 +16,14 @@ TestimonialKit is an intelligent SDK that helps you collect feedback and increas
 - Multi-step flow: rating → comment → App Store review
 - Complete event tracking system
 - Detailed analytics dashboard
+- Offline support with automatic request retrying
+- Built-in logging system with configurable verbosity
 
 ## Installation
 
 ### Swift Package Manager
 
-Add the following to your `Package.swift` file:
+Add the following to your Package.swift file:
 
 ```swift
 dependencies: [
@@ -38,6 +40,12 @@ Add the following to your Podfile:
 pod 'TestimonialKit'
 
 ```
+
+## Requirements
+
+- iOS 15.0+
+- Swift 5.5+
+- Xcode 13.0+
 
 ## Getting Started
 
@@ -56,7 +64,7 @@ import TestimonialKit
 func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     // Initialize TestimonialKit with your API key
     TestimonialKit.setup(withKey: "YOUR_API_KEY")
-
+    
     return true
 }
 
@@ -134,6 +142,16 @@ TestimonialKit.promptIfPossible(promptConfig: customConfig) { result in
 
 ```
 
+### Customizable Components
+
+TestimonialKit provides extensive customization options for:
+
+- Rating prompt (title, subtitle, star labels, button texts)
+- Comment form (title, subtitle, placeholder, button texts)
+- Store review prompt (title, message, button texts)
+- Thank you screen (title, message, button text)
+- Visual styling (colors, button shapes, text field appearance)
+
 ## Advanced Configuration
 
 ### Log Levels
@@ -171,6 +189,15 @@ TestimonialKit.promptIfPossible(
 
 ```
 
+## Architecture
+
+TestimonialKit is built with a modern, resilient architecture:
+
+- Leverages Swift Concurrency (async/await) for efficient background operations
+- Uses the actor model for thread safety
+- Implements a persistent request queue for offline support
+- Provides robust error handling and automatic retries
+
 ## Best Practices
 
 - Track meaningful events that indicate user satisfaction or frustration
@@ -178,12 +205,6 @@ TestimonialKit.promptIfPossible(
 - Call `promptIfPossible` at natural break points in your app flow
 - Customize the prompt UI to match your app's design language
 - Review analytics in the TestimonialKit dashboard to optimize your prompting strategy
-
-## Requirements
-
-- iOS 15.0+
-- Swift 5.5+
-- Xcode 13.0+
 
 ## License
 

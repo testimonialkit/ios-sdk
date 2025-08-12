@@ -1,6 +1,6 @@
 import Foundation
 
-public enum PromptResult {
+public enum PromptResult: Sendable {
   /// User did dismiss the prompt without submitting the rating
   case cancelled
 

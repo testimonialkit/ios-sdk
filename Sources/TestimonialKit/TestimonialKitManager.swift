@@ -13,7 +13,7 @@ protocol TestimonialKitManagerProtocol: AnyObject {
   func promptIfPossible(
     metadata: [String: String]?,
     promptConfig: PromptConfig,
-    completion: ((PromptResult) -> Void)?
+    completion: (@Sendable (PromptResult) -> Void)?
   )
 }
 
@@ -46,38 +46,41 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
     type: AppEventType = .positive,
     metadata: [String: String]? = nil
   ) {
-    Task {
-      let req = apiClient.sendAppEvent(
-          name: name,
-          score: score,
-          type: type,
-          metadata: metadata
-        )
+    Task { [weak self] in
+      let req = self?.apiClient.sendAppEvent(
+        name: name,
+        score: score,
+        type: type,
+        metadata: metadata
+      )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.sendEvent)"
+      guard let req else { return }
+
+      let logMessage = "About to enqueue on \(await self?.requestQueue.debugId) event: \(APIEventType.sendEvent)"
       Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
+      await self?.requestQueue.enqueue(req)
     }
   }
 
   func promptIfPossible(
     metadata: [String: String]? = nil,
     promptConfig: PromptConfig,
-    completion: ((PromptResult) -> Void)? = nil
+    completion: (@Sendable (PromptResult) -> Void)? = nil
   ) {
-    promptManager.promptForReviewIfPossible(
-      metadata: metadata,
-      config: promptConfig,
-      completion: completion
-    )
+    Task { [weak self] in
+      await self?.promptManager.promptForReviewIfPossible(
+        metadata: metadata,
+        config: promptConfig,
+        completion: completion
+      )
+    }
   }
 
   private func configure() {
-    Task {
-      await requestQueue.configure()
-      await requestQueue.enqueue(
-        apiClient.initSdk()
-      )
+    Task { [weak self] in
+      await self?.requestQueue.configure()
+      guard let request = self?.apiClient.initSdk() else { return }
+      await self?.requestQueue.enqueue(request)
     }
   }
 }
