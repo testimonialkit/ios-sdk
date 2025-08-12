@@ -11,7 +11,9 @@ struct ContentView: View {
       Text("Hello, world!")
 
       Button("Prompt if possible") {
-        TestimonialKit.promptIfPossible()
+        TestimonialKit.promptIfPossible { result in
+          print("Prompt completion:", result)
+        }
       }
 
       Button("Track custom event") {

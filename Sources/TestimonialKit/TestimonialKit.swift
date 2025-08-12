@@ -7,7 +7,8 @@ public class TestimonialKit {
 
   private init() {}
 
-  public static func setup(with apiKey: String) {
+  public static func setup(withKey apiKey: String, logLevel: LogLevel = .info) {
+    Logger.shared.currentLevel = logLevel
     let manager = resolve(\.testimonialKitManager)
     manager.setup(with: apiKey)
   }
@@ -22,8 +23,16 @@ public class TestimonialKit {
     manager.trackEvent(name: name, score: score, type: type, metadata: metadata)
   }
 
-  public static func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig = PromptConfig()) {
+  public static func promptIfPossible(
+    metadata: [String: String]? = nil,
+    promptConfig: PromptConfig = PromptConfig(),
+    completion: ((PromptResult) -> Void)? = nil
+  ) {
     let manager = resolve(\.testimonialKitManager)
-    manager.promptIfPossible(metadata: metadata, promptConfig: promptConfig)
+    manager.promptIfPossible(
+      metadata: metadata,
+      promptConfig: promptConfig,
+      completion: completion
+    )
   }
 }

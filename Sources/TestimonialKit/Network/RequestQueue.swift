@@ -1,102 +1,126 @@
 import Foundation
-import Combine
+@preconcurrency import Combine
 
-protocol RequestQueueProtocol: AnyObject {
-  var eventPublisher: PassthroughSubject<QueuedRequestResult, Never> { get }
-
-  func configure(config: TestimonialKitConfig)
-  func enqueue(_ request: QueuedRequest)
-}
-
-final class RequestQueue: @unchecked Sendable, RequestQueueProtocol {
+actor RequestQueue {
+  nonisolated var debugId: String { String(UInt(bitPattern: ObjectIdentifier(self))) }
   private var queue: [QueuedRequest] = []
   private var isProcessing = false
-  private let lock = DispatchQueue(label: "dev.testimonialkit.queue")
   private let saveURL: URL
-  private var config: TestimonialKitConfig?
+  private let maxRetries = 3
+  private let baseBackoff: TimeInterval = 0.8
 
-  let eventPublisher = PassthroughSubject<QueuedRequestResult, Never>()
+  private var subs: [UUID: AsyncStream<QueuedRequestResult>.Continuation] = [:]
 
-  init() {
-    let filename = "queued_requests.json"
-    saveURL = FileManager.default
+  init(filename: String = "queued_requests.json") {
+    self.saveURL = FileManager.default
       .urls(for: .documentDirectory, in: .userDomainMask)[0]
       .appendingPathComponent(filename)
-    loadQueueFromDisk()
-  }
 
-  func configure(config: TestimonialKitConfig) {
-    self.config = config
-    lock.async {
-      self.processNextIfNeeded()
+    if let data = try? Data(contentsOf: saveURL),
+       let loaded = try? JSONDecoder().decode([QueuedRequest].self, from: data) {
+      self.queue = loaded
     }
   }
 
-  func enqueue(_ request: QueuedRequest) {
-    lock.async {
-      self.queue.append(request)
-      self.saveQueueToDisk()
-      self.processNextIfNeeded()
+  func configure() async {
+    await processNextIfNeeded()
+  }
+
+  // Each caller gets their own stream
+  func subscribe() -> AsyncStream<QueuedRequestResult> {
+    let id = UUID()
+    let (stream, cont) = AsyncStream<QueuedRequestResult>.makeStream(bufferingPolicy: .unbounded)
+
+    subs[id] = cont
+    cont.onTermination = { [weak self] _ in
+      Task { await self?.removeSub(id) } // hop back to actor to mutate subs
+    }
+
+    return stream
+  }
+
+  private func removeSub(_ id: UUID) {
+    subs.removeValue(forKey: id)
+  }
+
+  func enqueue(_ request: QueuedRequest) async {
+    Logger.shared.verbose("RequestQueue \(debugId) enqueue: \(request.eventType)")
+    await queue.append(request)
+    await saveQueue()
+    await processNextIfNeeded()
+  }
+
+  func enqueue(_ builder: @escaping @Sendable () -> QueuedRequest) async {
+    await self.enqueue(builder())
+  }
+
+  // MARK: Internals
+
+  private func emit(_ value: QueuedRequestResult) {
+    for (_, cont) in subs {
+      cont.yield(value)
     }
   }
 
-  private func processNextIfNeeded() {
-    guard !isProcessing, !queue.isEmpty, let config else { return }
+  private func processNextIfNeeded(isRetrying: Bool = false) async {
+    guard !isProcessing, !queue.isEmpty else { return }
 
     isProcessing = true
-    let nextRequest = queue.removeFirst()
-    saveQueueToDisk()
+    let next = queue.removeFirst()
+    await saveQueue()
 
-    Task { [weak self] in
-      guard let self else { return }
-
-      do {
-        let result = try await nextRequest.execute()
-        eventPublisher.send(
-          QueuedRequestResult(
-            eventType: nextRequest.eventType,
-            result: .success(result),
-            metadata: nextRequest.metadata
-          )
-        )
-      } catch {
-        eventPublisher.send(
-          QueuedRequestResult(
-            eventType: nextRequest.eventType,
-            result: .failure(error),
-            metadata: nextRequest.metadata
-          )
-        )
-
-        // Check retry limit
-        if nextRequest.retryCount < config.retryCount {
-          let retryRequest = nextRequest.copy(
-            retryCount: nextRequest.retryCount + 1,
-          )
-          self.queue.insert(retryRequest, at: 0)
-          self.saveQueueToDisk()
+    do {
+      let data = try await next.execute()
+      if !isRetrying {
+        await emit(.init(eventType: next.eventType, result: .success(data)))
+      }
+      await finish(next: next, error: nil)
+    } catch {
+      if !isRetrying {
+        if let error = error as? QueueFailure {
+          await emit(.init(eventType: next.eventType, result: .failure(error)))
+        } else {
+          await emit(.init(eventType: next.eventType, result: .failure(.init(error))))
         }
       }
-
-      self.isProcessing = false
-      self.processNextIfNeeded()
+      await finish(next: next, error: error)
     }
   }
 
-  private func saveQueueToDisk() {
-    DispatchQueue.global(qos: .background).async { [weak self] in
-      guard let self else { return }
-      if let data = try? JSONEncoder().encode(self.queue) {
-        try? data.write(to: self.saveURL)
+  private func finish(next: QueuedRequest, error: Error?) async {
+    if let _ = error, next.retryCount < maxRetries {
+      let attempt = next.retryCount + 1
+      let delay = backoff(for: attempt)
+      let retry = next.copy(retryCount: attempt)
+
+      // Schedule the retry later so other queued items can run meanwhile.
+      Task {
+        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        await self.enqueueFrontAndKick(retry)
       }
     }
+
+    isProcessing = false
+    await processNextIfNeeded()
   }
 
-  private func loadQueueFromDisk() {
-    guard let data = try? Data(contentsOf: saveURL),
-          let loaded = try? JSONDecoder().decode([QueuedRequest].self, from: data)
-    else { return }
+  private func enqueueFrontAndKick(_ request: QueuedRequest) async {
+    queue.insert(request, at: 0)
+    await saveQueue()
+    await processNextIfNeeded(isRetrying: true) // IMPORTANT: restart processing after delayed insert
+  }
 
-    self.queue = loaded
+  private func backoff(for attempt: Int) -> TimeInterval {
+    let expo = pow(2.0, Double(attempt - 1)) * baseBackoff
+    let jitter = Double.random(in: 0...(baseBackoff / 2))
+    return min(expo + jitter, 20.0)
+  }
+
+  private func saveQueue() async {
+    let snapshot = self.queue
+    let url = self.saveURL
+    if let data = try? JSONEncoder().encode(snapshot) {
+      try? data.write(to: url)
+    }
   }
 }

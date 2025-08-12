@@ -1,6 +1,6 @@
 import Foundation
 
-protocol APIClientProtocol: AnyObject {
+protocol APIClientProtocol: AnyObject, Sendable {
   func initSdk() -> QueuedRequest
 
   func checkPromptEligibility() -> QueuedRequest
@@ -31,7 +31,7 @@ protocol APIClientProtocol: AnyObject {
   func execute(queuedRequest: QueuedRequest) async throws -> Data
 }
 
-class APIClient: APIClientProtocol {
+final class APIClient: APIClientProtocol {
   private let config: TestimonialKitConfig
 
   init(
@@ -189,7 +189,8 @@ class APIClient: APIClientProtocol {
   func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest {
     var body: [String: Any] = [
       "comment": comment,
-      "feedbackEventId": feedbackEventId
+      "feedbackEventId": feedbackEventId,
+      "userId": config.userId
     ]
 
     return QueuedRequest(
@@ -217,21 +218,18 @@ class APIClient: APIClientProtocol {
       request.httpBody = body
     }
 
-    let (data, response) = try await URLSession.shared.data(for: request)
-
-    guard let httpResponse = response as? HTTPURLResponse else {
-      throw TestimonialKitError.networkError("Invalid response type")
-    }
-
-    if (200...299).contains(httpResponse.statusCode) {
+    do {
+      let (data, response) = try await URLSession.shared.data(for: request)
+      if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+        throw QueueFailure(NSError(domain: "HTTPError", code: http.statusCode),
+                           url: response.url, status: http.statusCode, payload: data)
+      }
       return data
-    } else {
-      do {
-        let errorResponse = try JSONDecoder().decode(SDKErrorResponse.self, from: data)
-        throw TestimonialKitError.networkError(errorResponse.message)
-      } catch {
-        // fallback to status code if error response cannot be parsed
-        throw TestimonialKitError.networkError("Request failed with status code \(httpResponse.statusCode)")
+    } catch {
+      if let urlErr = error as? URLError {
+        throw QueueFailure(urlErr, code: urlErr.errorCode, url: request.url)
+      } else {
+        throw QueueFailure(error, url: request.url)
       }
     }
   }

@@ -1,6 +1,6 @@
 import Foundation
 
-enum PromptEventType: String, Codable {
+enum PromptEventType: String, Codable, Sendable {
   case promptShown = "prompt_shown"
   case promptDismissed = "prompt_dismissed"
   case promptDismissedAfterRating = "prompt_dismissed_after_rating"
