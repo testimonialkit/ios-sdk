@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 import Factory
 
-enum PromptViewState: Equatable {
+enum PromptViewState: Equatable, Sendable {
   case rating
   case comment(data: FeedbackLogResponse)
   case thankYou(data: FeedbackLogResponse?)
@@ -39,8 +39,7 @@ class PromptViewModel: ObservableObject {
           if !data.isPositiveRating || data.requestComment {
             setStateDeferred(.comment(data: data))
           } else if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
-            self.requestDismiss(as: .storeReview(redirected: true, data: data))
-            self.redirectToAppStoreReview(appStoreID: data.appStoreId ?? "")
+            self.redirectToAppStoreReview(data: data)
           } else if data.isPositiveRating && data.hasAppStoreId {
             setStateDeferred(.storeReview(redirected: false, data: data))
           } else {
@@ -49,8 +48,7 @@ class PromptViewModel: ObservableObject {
 
         case .comment(let data):
           if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
-            self.requestDismiss(as: .storeReview(redirected: true, data: data))
-            self.redirectToAppStoreReview(appStoreID: data.appStoreId ?? "")
+            self.redirectToAppStoreReview(data: data)
           } else if data.isPositiveRating && data.hasAppStoreId {
             setStateDeferred(.storeReview(redirected: false, data: data))
           } else {
@@ -73,8 +71,7 @@ class PromptViewModel: ObservableObject {
     case .comment:
       handleSubmitComment()
     case .storeReview(_, let data):
-      requestDismiss(as: .storeReview(redirected: true, data: data))
-      redirectToAppStoreReview(appStoreID: data.appStoreId ?? "")
+      redirectToAppStoreReview(data: data)
     case .thankYou(let data):
       requestDismiss(as: .thankYou(data: data))
     }
@@ -83,13 +80,19 @@ class PromptViewModel: ObservableObject {
   func handleSubmitRating() {
     if rating == 0 { return }
     isLoading = true
-    promptManager.logUserFeedback(rating: rating, comment: comment.isEmpty ? nil : comment)
+    Task { [weak self] in
+      guard let self else { return }
+      await promptManager.logUserFeedback(rating: rating, comment: comment.isEmpty ? nil : comment)
+    }
   }
 
   func handleSubmitComment() {
     isLoading = true
     dismissKeyboard()
-    promptManager.logUserComment(comment: comment.isEmpty ? nil : comment)
+    Task { [weak self] in
+      guard let self else { return }
+      await promptManager.logUserComment(comment: comment.isEmpty ? nil : comment)
+    }
   }
 
   func handleDismiss() {
@@ -105,28 +108,39 @@ class PromptViewModel: ObservableObject {
   }
 
   func handleOnDisappear() {
-    promptManager.handlePromptDismissAction(on: state)
+    Task { [weak self] in
+      guard let self else { return }
+      await promptManager.handlePromptDismissAction(on: state)
+    }
   }
 
-  func redirectToAppStoreReview(appStoreID: String) {
+  func redirectToAppStoreReview(data: FeedbackLogResponse) {
+    let appStoreID = data.appStoreId ?? ""
+
     if appStoreID.isEmpty {
       Logger.shared.debug("Invalid app identifier")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
       return
     }
 
     guard let url = URL(string: "itms-apps://itunes.apple.com/app/\(appStoreID)?action=write-review") else {
       Logger.shared.debug("Invalid store URL")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
       return
     }
 
     if UIApplication.shared.canOpenURL(url) {
-      UIApplication.shared.open(url, options: [:]) { success in
+      UIApplication.shared.open(url, options: [:]) { [weak self] success in
         if !success {
           Logger.shared.debug("Failed to open AppStore")
+          self?.requestDismiss(as: .storeReview(redirected: false, data: data))
+        } else {
+          self?.requestDismiss(as: .storeReview(redirected: true, data: data))
         }
       }
     } else {
       Logger.shared.debug("Can not open URL")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
     }
   }
 
@@ -147,9 +161,9 @@ class PromptViewModel: ObservableObject {
 
     // Reflect final state for UI immediately (safe), then defer external dismiss
     state = finalState
-    DispatchQueue.main.async { [weak self] in
+    Task { [weak self] in
       guard let self else { return }
-      self.promptManager.dismissPrompt(on: finalState)
+      await promptManager.dismissPrompt(on: finalState)
     }
   }
 }
