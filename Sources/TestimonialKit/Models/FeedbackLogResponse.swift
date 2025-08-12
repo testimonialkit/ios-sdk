@@ -1,6 +1,6 @@
 import Foundation
 
-struct FeedbackLogResponse: Decodable, Sendable {
+struct FeedbackLogResponse: Decodable, Equatable, Sendable {
   let message: String
   let eventId: String
   let redirectMode: StoreRedirectMode
@@ -15,7 +15,7 @@ struct FeedbackLogResponse: Decodable, Sendable {
   }
 }
 
-enum StoreRedirectMode: String, Codable {
+enum StoreRedirectMode: String, Codable, Equatable {
   case none = "none"
   case positiveOnly = "positive_only"
   case always = "always"

@@ -27,6 +27,7 @@ protocol PromptManagerProtocol: AnyObject {
     completion: ((PromptResult) -> Void)?
   )
   func dismissPrompt(on state: PromptViewState)
+  func handlePromptDismissAction(on state: PromptViewState)
   func showPrompt()
 }
 
@@ -331,37 +332,12 @@ final class PromptManager: PromptManagerProtocol {
   }
 
   func dismissPrompt(on state: PromptViewState) {
-    switch state {
-    case .rating, .comment, .thankYou:
-      if let currentFeedbackResponse {
-        if currentFeedbackResponse.hasComment {
-          completionHandlers.forEach { $1(.completed) }
-        } else {
-          completionHandlers.forEach { $1(.completedWithoutComment) }
-        }
-      } else {
-        completionHandlers.forEach { $1(.cancelled) }
-      }
-      logPromptDismissed()
-    case .storeReview(let redirected):
-      if redirected {
-        completionHandlers.forEach { $1(.redirectedToStore) }
-        logRedirectedToStore()
-      } else {
-        completionHandlers.forEach { $1(.storeReviewSkipped) }
-        logStoreReviewSkipped()
-      }
-
-      logPromptDismissed()
-    }
-
     promptState = .dismissing
     presentedPromptVC?.dismiss(animated: true) { [weak self] in
       guard let self else { return }
-      self.promptState = .iddle
+      self.handlePromptDismissAction(on: state)
     }
     presentedPromptVC = nil
-    completionHandlers = [:]
   }
 
   func showPrompt() {
@@ -381,8 +357,56 @@ final class PromptManager: PromptManagerProtocol {
     presenter.present(hostingVC, animated: true) { [weak self] in
       guard let self else { return }
       self.promptState = .shown
+      self.logPromptShown()
     }
     presentedPromptVC = hostingVC
+  }
+
+  func handlePromptDismissAction(on state: PromptViewState) {
+    switch state {
+    case .storeReview(let redirected):
+      if redirected {
+        logRedirectedToStore()
+      } else {
+        logStoreReviewSkipped()
+      }
+    default:
+      Logger.shared.debug("Ignored PromptViewState: \(state)")
+    }
+
+    logPromptDismissed()
+    triggerCompletionHandlers(on: state)
+    clearCurrentState()
+  }
+
+  private func triggerCompletionHandlers(on state: PromptViewState) {
+    switch state {
+    case .rating, .comment, .thankYou:
+      if let currentFeedbackResponse {
+        if currentFeedbackResponse.hasComment {
+          completionHandlers.forEach { $1(.completed) }
+        } else {
+          completionHandlers.forEach { $1(.completedWithoutComment) }
+        }
+      } else {
+        completionHandlers.forEach { $1(.cancelled) }
+      }
+    case .storeReview(let redirected):
+      if redirected {
+        completionHandlers.forEach { $1(.redirectedToStore) }
+      } else {
+        completionHandlers.forEach { $1(.storeReviewSkipped) }
+      }
+    }
+
+    completionHandlers = [:]
+  }
+
+  private func clearCurrentState() {
+    promptState = .iddle
+    currentEligibility = nil
+    currentPromptEvent = nil
+    currentFeedbackResponse = nil
   }
 
   deinit {
