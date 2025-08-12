@@ -8,6 +8,7 @@ struct FeedbackLogResponse: Decodable, Sendable {
   let isPositiveRating: Bool
   let requestComment: Bool
   let appStoreId: String?
+  let hasComment: Bool
 
   var hasAppStoreId: Bool {
     appStoreId != nil && appStoreId?.isEmpty == false

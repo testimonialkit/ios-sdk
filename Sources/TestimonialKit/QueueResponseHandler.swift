@@ -63,7 +63,7 @@ final class QueueResponseHandler {
     case .sendEvent(let result):
       switch result {
       case .success(let success):
-        Logger.shared.debug("★ Event sent: \(success.message) ★")
+        Logger.shared.debug("Event sent: \(success.message)")
       case .failure(let queueFailure):
         Logger.shared.debug("Faith to send event: \(queueFailure.errorDescription ?? "unknown error")")
       }

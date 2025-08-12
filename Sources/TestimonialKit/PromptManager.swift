@@ -2,6 +2,15 @@ import SwiftUI
 @preconcurrency import Combine
 import Factory
 
+enum PromptState {
+  case iddle
+  case checkingForEligibility
+  case eligible
+  case showing
+  case shown
+  case dismissing
+}
+
 @MainActor
 protocol PromptManagerProtocol: AnyObject {
   var feedbackEventPublisher: PassthroughSubject<FeedbackEventType, Never> { get }
@@ -12,7 +21,11 @@ protocol PromptManagerProtocol: AnyObject {
   func logStoreReviewSkipped()
   func logUserFeedback(rating: Int, comment: String?)
   func logUserComment(comment: String?)
-  func promptForReviewIfPossible(metadata: [String: String]?, config: PromptConfig)
+  func promptForReviewIfPossible(
+    metadata: [String: String]?,
+    config: PromptConfig,
+    completion: ((PromptResult) -> Void)?
+  )
   func dismissPrompt(on state: PromptViewState)
   func showPrompt()
 }
@@ -28,6 +41,12 @@ final class PromptManager: PromptManagerProtocol {
   private var currentPromptEvent: PromptEventLogResponse?
   private var currentFeedbackResponse: FeedbackLogResponse?
   private var feedbackEventRegistered: Bool = false
+  private var promptState: PromptState = .iddle {
+    didSet {
+      Logger.shared.verbose("Prompt state changed: \(promptState)")
+    }
+  }
+  private var completionHandlers: [UUID: ((PromptResult) -> Void)] = [:]
   private weak var presentedPromptVC: UIViewController?
   private var currentPromptConfig: PromptConfig = PromptConfig()
   let feedbackEventPublisher = PassthroughSubject<FeedbackEventType, Never>()
@@ -98,16 +117,18 @@ final class PromptManager: PromptManagerProtocol {
     case .checkEligibility(let result):
       switch result {
       case .success(let response):
-        currentEligibility = response
-        currentFeedbackResponse = nil
-
         if response.eligible {
+          currentEligibility = response
+          currentFeedbackResponse = nil
+          promptState = .eligible
           showPrompt()
           Logger.shared.debug("User eligible for prompt")
         } else {
+          promptState = .iddle
           Logger.shared.debug("User not eligible for prompt: \(response.reason ?? "Unknown reason")")
         }
       case .failure(let error):
+        promptState = .iddle
         feedbackEventPublisher.send(.error)
         Logger.shared.debug("Eligibility request failed: \(error.errorDescription)")
       }
@@ -143,6 +164,7 @@ final class PromptManager: PromptManagerProtocol {
     case .feedbackComment(let result):
       switch result {
       case .success(let response):
+        currentFeedbackResponse = response
         feedbackEventPublisher.send(.comment(data: response))
         Logger.shared.debug("Comment saved successfully")
       case .failure(let error):
@@ -284,10 +306,21 @@ final class PromptManager: PromptManagerProtocol {
     }
   }
 
-  func promptForReviewIfPossible(metadata: [String: String]? = nil, config: PromptConfig) {
+  func promptForReviewIfPossible(
+    metadata: [String: String]? = nil,
+    config: PromptConfig,
+    completion: ((PromptResult) -> Void)? = nil
+  ) {
+    if promptState != .iddle {
+      Logger.shared.warning("Invalid state to call promptForReviewIfPossible: \(promptState)")
+      return
+    }
+
     self.currentPromptConfig = config
     self.promptMetadata = metadata
+    self.completionHandlers[UUID()] = completion
 
+    promptState = .checkingForEligibility
     Task { [requestQueue, apiClient] in
       let req = apiClient.checkPromptEligibility()
 
@@ -300,29 +333,55 @@ final class PromptManager: PromptManagerProtocol {
   func dismissPrompt(on state: PromptViewState) {
     switch state {
     case .rating, .comment, .thankYou:
+      if let currentFeedbackResponse {
+        if currentFeedbackResponse.hasComment {
+          completionHandlers.forEach { $1(.completed) }
+        } else {
+          completionHandlers.forEach { $1(.completedWithoutComment) }
+        }
+      } else {
+        completionHandlers.forEach { $1(.cancelled) }
+      }
       logPromptDismissed()
     case .storeReview(let redirected):
       if redirected {
+        completionHandlers.forEach { $1(.redirectedToStore) }
         logRedirectedToStore()
       } else {
+        completionHandlers.forEach { $1(.storeReviewSkipped) }
         logStoreReviewSkipped()
       }
 
       logPromptDismissed()
     }
-    presentedPromptVC?.dismiss(animated: true)
+
+    promptState = .dismissing
+    presentedPromptVC?.dismiss(animated: true) { [weak self] in
+      guard let self else { return }
+      self.promptState = .iddle
+    }
     presentedPromptVC = nil
+    completionHandlers = [:]
   }
 
   func showPrompt() {
+    guard promptState == .eligible else {
+      Logger.shared.warning("Prompt state is not eligible")
+      return
+    }
+
     guard let presenter = UIViewController.topMost else {
       Logger.shared.warning("No presenter available")
       return
     }
 
+    promptState = .showing
     let swiftUIView = PromptView(config: currentPromptConfig)
     let hostingVC = PromptViewController(rootView: swiftUIView)
-    presenter.present(hostingVC, animated: true)
+    presenter.present(hostingVC, animated: true) { [weak self] in
+      guard let self else { return }
+      self.promptState = .shown
+    }
     presentedPromptVC = hostingVC
   }
 

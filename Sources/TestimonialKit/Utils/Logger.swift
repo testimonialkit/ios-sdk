@@ -14,6 +14,18 @@ public enum LogLevel: Int, Comparable {
   public static func < (lhs: LogLevel, rhs: LogLevel) -> Bool {
     return lhs.rawValue < rhs.rawValue
   }
+
+  // Emoji for each level to provide visual "color" cues in the console
+  var emoji: String {
+    switch self {
+    case .verbose: return "💬"  // Grayish for verbose
+    case .debug: return "🐞"    // Blue-ish bug for debug
+    case .info: return "ℹ️"     // Blue info
+    case .warning: return "⚠️"  // Yellow warning
+    case .error: return "❌"     // Red error
+    case .none: return ""
+    }
+  }
 }
 
 // Singleton Logger class for easy access throughout the SDK
@@ -36,8 +48,8 @@ final class Logger: @unchecked Sendable {
     guard level >= currentLevel else { return }
 
     // Format the message with level, file, line, and function for better debugging
-//    let formattedMessage = "[\(level)] \(file.components(separatedBy: "/").last ?? ""):\(line) \(function) - \(message)"
-    let formattedMessage = "[\(level)] TestimonialKit - \(message)"
+    //    let formattedMessage = "[\(level)] \(file.components(separatedBy: "/").last ?? ""):\(line) \(function) - \(message)"
+    let formattedMessage = "\(level.emoji) [\(level)] TestimonialKit - \(message)"
 
     // Use OSLog for efficient logging (privacy-preserving and performant on iOS)
     switch level {

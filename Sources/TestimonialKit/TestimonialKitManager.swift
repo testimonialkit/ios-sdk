@@ -10,7 +10,11 @@ protocol TestimonialKitManagerProtocol: AnyObject {
     type: AppEventType,
     metadata: [String: String]?
   )
-  func promptIfPossible(metadata: [String: String]?, promptConfig: PromptConfig)
+  func promptIfPossible(
+    metadata: [String: String]?,
+    promptConfig: PromptConfig,
+    completion: ((PromptResult) -> Void)?
+  )
 }
 
 @MainActor
@@ -56,8 +60,16 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
     }
   }
 
-  func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig) {
-    promptManager.promptForReviewIfPossible(metadata: metadata, config: promptConfig)
+  func promptIfPossible(
+    metadata: [String: String]? = nil,
+    promptConfig: PromptConfig,
+    completion: ((PromptResult) -> Void)? = nil
+  ) {
+    promptManager.promptForReviewIfPossible(
+      metadata: metadata,
+      config: promptConfig,
+      completion: completion
+    )
   }
 
   private func configure() {
