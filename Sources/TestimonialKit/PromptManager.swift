@@ -11,33 +11,35 @@ enum PromptState {
   case dismissing
 }
 
-@MainActor
-protocol PromptManagerProtocol: AnyObject {
-  var feedbackEventPublisher: PassthroughSubject<FeedbackEventType, Never> { get }
-  func logPromptShown()
-  func logPromptDismissed()
-  func logPromptDismissedAfterRating()
-  func logRedirectedToStore()
-  func logStoreReviewSkipped()
-  func logUserFeedback(rating: Int, comment: String?)
-  func logUserComment(comment: String?)
+// Protocol updated to be Sendable
+protocol PromptManagerProtocol: AnyObject, Sendable {
+  // Publisher will need to be accessed from outside the actor
+  nonisolated var feedbackEventPublisher: PassthroughSubject<FeedbackEventType, Never> { get }
+
+  // All methods now return Task or Void since they're asynchronous across actor boundaries
+  func logPromptShown() async
+  func logPromptDismissed() async
+  func logPromptDismissedAfterRating() async
+  func logRedirectedToStore() async
+  func logStoreReviewSkipped() async
+  func logUserFeedback(rating: Int, comment: String?) async
+  func logUserComment(comment: String?) async
   func promptForReviewIfPossible(
     metadata: [String: String]?,
     config: PromptConfig,
-    completion: ((PromptResult) -> Void)?
-  )
-  func dismissPrompt(on state: PromptViewState)
-  func handlePromptDismissAction(on state: PromptViewState)
-  func showPrompt()
+    completion: (@Sendable (PromptResult) -> Void)?
+  ) async
+  func dismissPrompt(on state: PromptViewState) async
+  func handlePromptDismissAction(on state: PromptViewState) async
+  func showPrompt() async
 }
 
-@MainActor
-final class PromptManager: PromptManagerProtocol {
-  @Injected(\.requestQueue) var requestQueue
-  @Injected(\.apiClient) var apiClient
+// Actor implementation of PromptManager
+actor PromptManager: PromptManagerProtocol {
+  private let requestQueue: RequestQueue
+  private let apiClient: APIClientProtocol
   private let testimonialKitConfig: TestimonialKitConfig
   private var promptMetadata: [String: String]?
-  private var cancellables = Set<AnyCancellable>()
   private var currentEligibility: PromptEligibilityResponse?
   private var currentPromptEvent: PromptEventLogResponse?
   private var currentFeedbackResponse: FeedbackLogResponse?
@@ -48,29 +50,41 @@ final class PromptManager: PromptManagerProtocol {
     }
   }
   private var completionHandlers: [UUID: ((PromptResult) -> Void)] = [:]
-  private weak var presentedPromptVC: UIViewController?
+  // This needs to be accessed from the main thread, so we use nonisolated
+  private nonisolated(unsafe) var _presentedPromptVC: UIViewController?
   private var currentPromptConfig: PromptConfig = PromptConfig()
-  let feedbackEventPublisher = PassthroughSubject<FeedbackEventType, Never>()
+
+  // Publishers need to be nonisolated so they can be observed from outside the actor
+  nonisolated let feedbackEventPublisher = PassthroughSubject<FeedbackEventType, Never>()
   private var listenerTask: Task<Void, Never>?
 
-  init(config: TestimonialKitConfig) {
+  init(config: TestimonialKitConfig, requestQueue: RequestQueue, apiClient: APIClientProtocol) {
     self.testimonialKitConfig = config
+    self.requestQueue = requestQueue
+    self.apiClient = apiClient
 
+    // Capture weak self to avoid retain cycles
+    Task { [weak self] in
+      await self?.startListening()
+    }
+  }
+
+  func startListening() {
     listenerTask = Task { [weak self] in
-      guard let self else { return }
-      let stream = await self.requestQueue.subscribe()   // await actor to fetch the single stream
+      guard let self = self else { return }
+      let stream = await self.requestQueue.subscribe()
       for await event in stream {
-        // decode on background if you want
         let decoded: DecodedQueueEvent = await withCheckedContinuation { cont in
           DispatchQueue.global(qos: .utility).async {
             cont.resume(returning: self.decode(event))
           }
         }
-        await self.apply(decoded)  // hop back to @MainActor (self is @MainActor)
+        await self.apply(decoded)
       }
     }
   }
 
+  // Decode can be nonisolated since it doesn't access actor state
   private nonisolated func decode(_ event: QueuedRequestResult) -> DecodedQueueEvent {
     switch event.eventType {
     case .checkPromptEligibility:
@@ -122,7 +136,11 @@ final class PromptManager: PromptManagerProtocol {
           currentEligibility = response
           currentFeedbackResponse = nil
           promptState = .eligible
-          showPrompt()
+
+          // Need to run on main thread when showing UI
+          Task { @MainActor in
+            await self.showPrompt()
+          }
           Logger.shared.debug("User eligible for prompt")
         } else {
           promptState = .iddle
@@ -130,8 +148,11 @@ final class PromptManager: PromptManagerProtocol {
         }
       case .failure(let error):
         promptState = .iddle
-        feedbackEventPublisher.send(.error)
-        Logger.shared.debug("Eligibility request failed: \(error.errorDescription)")
+        // We need to use MainActor to send to the publisher from a background context
+        Task { @MainActor in
+          self.feedbackEventPublisher.send(.error)
+        }
+        Logger.shared.debug("Eligibility request failed: \(error.errorDescription ?? "")")
       }
 
     case .promptEvent(let result):
@@ -148,170 +169,164 @@ final class PromptManager: PromptManagerProtocol {
         currentEligibility = nil
         currentPromptEvent = nil
         promptMetadata = nil
-        Logger.shared.debug("Prompt event failed: \(error.errorDescription)")
+        Logger.shared.debug("Prompt event failed: \(error.errorDescription ?? "")")
       }
 
     case .feedbackEvent(let result):
       switch result {
       case .success(let response):
         currentFeedbackResponse = response
-        feedbackEventPublisher.send(.rating(data: response))
+        // Publishing needs to be on the main thread
+        Task { @MainActor in
+          self.feedbackEventPublisher.send(.rating(data: response))
+        }
         Logger.shared.debug("Feedback event logged")
       case .failure(let error):
-        feedbackEventPublisher.send(.error)
-        Logger.shared.debug("Feedback request failed: \(error.errorDescription)")
+        Task { @MainActor in
+          self.feedbackEventPublisher.send(.error)
+        }
+        Logger.shared.debug("Feedback request failed: \(error.errorDescription ?? "")")
       }
 
     case .feedbackComment(let result):
       switch result {
       case .success(let response):
         currentFeedbackResponse = response
-        feedbackEventPublisher.send(.comment(data: response))
+        Task { @MainActor in
+          self.feedbackEventPublisher.send(.comment(data: response))
+        }
         Logger.shared.debug("Comment saved successfully")
       case .failure(let error):
-        feedbackEventPublisher.send(.error)
-        Logger.shared.debug("Comment request failed: \(error.errorDescription)")
+        Task { @MainActor in
+          self.feedbackEventPublisher.send(.error)
+        }
+        Logger.shared.debug("Comment request failed: \(error.errorDescription ?? "")")
       }
     default:
       break
     }
   }
 
-
-  func logPromptShown() {
+  func logPromptShown() async {
     guard let currentEligibility else {
       Logger.shared.debug("No eligibility data available.")
       return
     }
 
-    Task { [requestQueue, currentEligibility, apiClient, promptMetadata] in
-      let req = apiClient.sendPromptEvent(
-        type: .promptShown,
-        previousEventId: currentEligibility.eventId,
-        feedbackEventId: nil,
-        metadata: promptMetadata
-      )
+    let req = apiClient.sendPromptEvent(
+      type: .promptShown,
+      previousEventId: currentEligibility.eventId,
+      feedbackEventId: nil,
+      metadata: promptMetadata
+    )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptShown)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptShown)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
   }
 
-  func logPromptDismissed() {
+  func logPromptDismissed() async {
     guard let currentPromptEvent else { return }
 
-    if currentFeedbackResponse != nil || feedbackEventRegistered  {
-      logPromptDismissedAfterRating()
+    if currentFeedbackResponse != nil || feedbackEventRegistered {
+      await logPromptDismissedAfterRating()
       return
     }
 
-    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
-      let req = apiClient.sendPromptEvent(
-        type: .promptDismissed,
-        previousEventId: currentPromptEvent.eventId,
-        feedbackEventId: nil,
-        metadata: promptMetadata
-      )
+    let req = apiClient.sendPromptEvent(
+      type: .promptDismissed,
+      previousEventId: currentPromptEvent.eventId,
+      feedbackEventId: nil,
+      metadata: promptMetadata
+    )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissed)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissed)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
   }
 
-  func logPromptDismissedAfterRating() {
+  func logPromptDismissedAfterRating() async {
     guard let currentFeedbackResponse, let currentPromptEvent, feedbackEventRegistered else { return }
 
-    Task { [requestQueue, currentFeedbackResponse, currentPromptEvent, apiClient, promptMetadata] in
-      let req = apiClient.sendPromptEvent(
-        type: .promptDismissedAfterRating,
-        previousEventId: currentPromptEvent.eventId,
-        feedbackEventId: currentFeedbackResponse.eventId,
-        metadata: promptMetadata
-      )
+    let req = apiClient.sendPromptEvent(
+      type: .promptDismissedAfterRating,
+      previousEventId: currentPromptEvent.eventId,
+      feedbackEventId: currentFeedbackResponse.eventId,
+      metadata: promptMetadata
+    )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissedAfterRating)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.promptDismissedAfterRating)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
 
     feedbackEventRegistered = false
   }
 
-  func logRedirectedToStore() {
+  func logRedirectedToStore() async {
     guard let currentPromptEvent else { return }
 
-    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
-      let req = apiClient.sendPromptEvent(
-        type: .redirectedToStore,
-        previousEventId: currentPromptEvent.eventId,
-        feedbackEventId: nil,
-        metadata: promptMetadata
-      )
+    let req = apiClient.sendPromptEvent(
+      type: .redirectedToStore,
+      previousEventId: currentPromptEvent.eventId,
+      feedbackEventId: nil,
+      metadata: promptMetadata
+    )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.redirectedToStore)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.redirectedToStore)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
   }
 
-  func logStoreReviewSkipped() {
+  func logStoreReviewSkipped() async {
     guard let currentPromptEvent else { return }
 
-    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
-      let req = apiClient.sendPromptEvent(
-        type: .storeReviewSkipped,
-        previousEventId: currentPromptEvent.eventId,
-        feedbackEventId: nil,
-        metadata: promptMetadata
-      )
+    let req = apiClient.sendPromptEvent(
+      type: .storeReviewSkipped,
+      previousEventId: currentPromptEvent.eventId,
+      feedbackEventId: nil,
+      metadata: promptMetadata
+    )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.storeReviewSkipped)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(PromptEventType.storeReviewSkipped)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
   }
 
-  func logUserFeedback(rating: Int, comment: String? = nil) {
+  func logUserFeedback(rating: Int, comment: String? = nil) async {
     guard let currentPromptEvent else { return }
 
-    Task { [requestQueue, currentPromptEvent, apiClient, promptMetadata] in
-      let req = apiClient.sendFeedbackEvent(
-        promptEventId: currentPromptEvent.eventId,
-        rating: rating,
-        comment: comment,
-        metadata: promptMetadata
-      )
+    let req = apiClient.sendFeedbackEvent(
+      promptEventId: currentPromptEvent.eventId,
+      rating: rating,
+      comment: comment,
+      metadata: promptMetadata
+    )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(req.eventType)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(req.eventType)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
 
     feedbackEventRegistered = true
   }
 
-  func logUserComment(comment: String?) {
+  func logUserComment(comment: String?) async {
     guard let currentFeedbackResponse else { return }
 
-    Task { [requestQueue, currentFeedbackResponse, apiClient] in
-      let req = apiClient.sendFeedbackComment(
-        comment: comment,
-        feedbackEventId: currentFeedbackResponse.eventId
-      )
+    let req = apiClient.sendFeedbackComment(
+      comment: comment,
+      feedbackEventId: currentFeedbackResponse.eventId
+    )
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.sendFeedbackComment)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.sendFeedbackComment)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
   }
 
   func promptForReviewIfPossible(
     metadata: [String: String]? = nil,
     config: PromptConfig,
-    completion: ((PromptResult) -> Void)? = nil
-  ) {
+    completion: (@Sendable (PromptResult) -> Void)? = nil
+  ) async {
     if promptState != .iddle {
       Logger.shared.warning("Invalid state to call promptForReviewIfPossible: \(promptState)")
       return
@@ -319,67 +334,82 @@ final class PromptManager: PromptManagerProtocol {
 
     self.currentPromptConfig = config
     self.promptMetadata = metadata
-    self.completionHandlers[UUID()] = completion
+    let uuid = UUID()
+    self.completionHandlers[uuid] = completion
 
     promptState = .checkingForEligibility
-    Task { [requestQueue, apiClient] in
-      let req = apiClient.checkPromptEligibility()
+    let req = apiClient.checkPromptEligibility()
 
-      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.checkPromptEligibility)"
-      Logger.shared.verbose(logMessage)
-      await requestQueue.enqueue(req)
-    }
+    let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.checkPromptEligibility)"
+    Logger.shared.verbose(logMessage)
+    await requestQueue.enqueue(req)
   }
 
-  func dismissPrompt(on state: PromptViewState) {
+  func dismissPrompt(on state: PromptViewState) async {
     promptState = .dismissing
-    presentedPromptVC?.dismiss(animated: true) { [weak self] in
-      guard let self else { return }
-      self.handlePromptDismissAction(on: state)
+
+    // UI operations must run on main thread
+    await MainActor.run {
+      self._presentedPromptVC?.dismiss(animated: true) {
+        // Hop back to actor for state handling
+        Task {
+          await self.handlePromptDismissAction(on: state)
+        }
+      }
+      self._presentedPromptVC = nil
     }
-    presentedPromptVC = nil
   }
 
-  func showPrompt() {
-    guard promptState == .eligible else {
+  // This must be called on the main thread
+  func showPrompt() async {
+    guard await promptState == .eligible else {
       Logger.shared.warning("Prompt state is not eligible")
       return
     }
 
-    guard let presenter = UIViewController.topMost else {
+    guard let presenter = await UIViewController.topMost else {
       Logger.shared.warning("No presenter available")
       return
     }
 
     promptState = .showing
-    let swiftUIView = PromptView(config: currentPromptConfig)
-    let hostingVC = PromptViewController(rootView: swiftUIView)
-    presenter.present(hostingVC, animated: true) { [weak self] in
-      guard let self else { return }
-      self.promptState = .shown
-      self.logPromptShown()
+    await MainActor.run { [currentPromptConfig] in
+      let swiftUIView = PromptView(config: currentPromptConfig)
+      let hostingVC = PromptViewController(rootView: swiftUIView)
+      presenter.present(hostingVC, animated: true) {
+        // We need to hop back to the actor context
+        Task {
+          await self.promptWasShown()
+        }
+      }
+      _presentedPromptVC = hostingVC
     }
-    presentedPromptVC = hostingVC
   }
 
-  func handlePromptDismissAction(on state: PromptViewState) {
+  private func promptWasShown() async {
+    promptState = .shown
+    await logPromptShown()
+  }
+
+  func handlePromptDismissAction(on state: PromptViewState) async {
     switch state {
     case .storeReview(let redirected, _):
       if redirected {
-        logRedirectedToStore()
+        await logRedirectedToStore()
       } else {
-        logStoreReviewSkipped()
+        await logStoreReviewSkipped()
       }
     default:
       Logger.shared.debug("Ignored PromptViewState: \(state)")
     }
 
-    logPromptDismissed()
-    triggerCompletionHandlers(on: state)
+    await logPromptDismissed()
+    await triggerCompletionHandlers(on: state)
     clearCurrentState()
   }
 
-  private func triggerCompletionHandlers(on state: PromptViewState) {
+  private func triggerCompletionHandlers(on state: PromptViewState) async {
+    // Execute completion handlers on main thread
     switch state {
     case .rating, .comment, .thankYou:
       if let currentFeedbackResponse {
@@ -399,7 +429,7 @@ final class PromptManager: PromptManagerProtocol {
       }
     }
 
-    completionHandlers = [:]
+    completionHandlers.removeAll()
   }
 
   private func clearCurrentState() {
@@ -410,6 +440,6 @@ final class PromptManager: PromptManagerProtocol {
   }
 
   deinit {
-    listenerTask?.cancel() // optional, just to be tidy
+    listenerTask?.cancel()
   }
 }

@@ -31,7 +31,9 @@ extension Container {
   var promptManager: Factory<PromptManagerProtocol> {
     self { @MainActor in
       PromptManager(
-        config: self.configuration()
+        config: self.configuration(),
+        requestQueue: self.requestQueue(),
+        apiClient: self.apiClient()
       )
     }
     .singleton
