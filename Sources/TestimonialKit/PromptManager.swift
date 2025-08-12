@@ -364,7 +364,7 @@ final class PromptManager: PromptManagerProtocol {
 
   func handlePromptDismissAction(on state: PromptViewState) {
     switch state {
-    case .storeReview(let redirected):
+    case .storeReview(let redirected, _):
       if redirected {
         logRedirectedToStore()
       } else {
@@ -391,7 +391,7 @@ final class PromptManager: PromptManagerProtocol {
       } else {
         completionHandlers.forEach { $1(.cancelled) }
       }
-    case .storeReview(let redirected):
+    case .storeReview(let redirected, _):
       if redirected {
         completionHandlers.forEach { $1(.redirectedToStore) }
       } else {
