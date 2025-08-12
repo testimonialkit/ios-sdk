@@ -2,9 +2,11 @@ import Foundation
 
 struct FeedbackEvent {
   let type: FeedbackEventType
-  let response: FeedbackLogResponse?
+  var response: FeedbackLogResponse? = nil
 }
 
 enum FeedbackEventType {
-  case rating, comment
+  case rating(data: FeedbackLogResponse)
+  case comment(data: FeedbackLogResponse)
+  case error
 }

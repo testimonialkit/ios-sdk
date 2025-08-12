@@ -19,7 +19,7 @@ extension Container {
         countryCode: countryCode
       )
     }
-    .scope(.singleton)
+    .singleton
   }
 
   var apiClient: Factory<APIClientProtocol> {
@@ -34,14 +34,14 @@ extension Container {
         config: self.configuration()
       )
     }
-    .scope(.singleton)
+    .singleton
   }
 
-  var requestQueue: Factory<RequestQueueProtocol> {
+  var requestQueue: Factory<RequestQueue> {
     self {
       RequestQueue()
     }
-    .scope(.singleton)
+    .singleton
   }
 
   @MainActor
@@ -53,6 +53,13 @@ extension Container {
         configuration: self.configuration()
       )
     }
-    .scope(.singleton)
+    .singleton
+  }
+
+  @MainActor
+  var promptViewModel: Factory<PromptViewModel> {
+    self { @MainActor in
+      PromptViewModel(promptManager: self.promptManager(), sdkConfig: self.configuration())
+    }
   }
 }

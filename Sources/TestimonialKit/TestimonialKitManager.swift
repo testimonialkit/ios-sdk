@@ -10,20 +10,24 @@ protocol TestimonialKitManagerProtocol: AnyObject {
     type: AppEventType,
     metadata: [String: String]?
   )
-  func promptIfPossible(metadata: [String: String]?, promptConfig: PromptConfig)
+  func promptIfPossible(
+    metadata: [String: String]?,
+    promptConfig: PromptConfig,
+    completion: ((PromptResult) -> Void)?
+  )
 }
 
 @MainActor
 class TestimonialKitManager: TestimonialKitManagerProtocol {
   @Injected(\.apiClient) var apiClient
   private let promptManager: PromptManagerProtocol
-  private let requestQueue: RequestQueueProtocol
+  private let requestQueue: RequestQueue
   private let config: TestimonialKitConfig
   private let responseHandler = QueueResponseHandler()
 
   init(
     promptManager: PromptManagerProtocol,
-    requestQueue: RequestQueueProtocol,
+    requestQueue: RequestQueue,
     configuration: TestimonialKitConfig
   ) {
     self.promptManager = promptManager
@@ -33,10 +37,7 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
 
   func setup(with apiKey: String) {
     config.apiKey = apiKey
-    configure(config: config)
-    requestQueue.enqueue(
-      apiClient.initSdk()
-    )
+    configure()
   }
 
   func trackEvent(
@@ -45,21 +46,38 @@ class TestimonialKitManager: TestimonialKitManagerProtocol {
     type: AppEventType = .positive,
     metadata: [String: String]? = nil
   ) {
-    requestQueue.enqueue(
-      apiClient.sendAppEvent(
-        name: name,
-        score: score,
-        type: type,
-        metadata: metadata
-      )
+    Task {
+      let req = apiClient.sendAppEvent(
+          name: name,
+          score: score,
+          type: type,
+          metadata: metadata
+        )
+
+      let logMessage = "About to enqueue on \(await requestQueue.debugId) event: \(APIEventType.sendEvent)"
+      Logger.shared.verbose(logMessage)
+      await requestQueue.enqueue(req)
+    }
+  }
+
+  func promptIfPossible(
+    metadata: [String: String]? = nil,
+    promptConfig: PromptConfig,
+    completion: ((PromptResult) -> Void)? = nil
+  ) {
+    promptManager.promptForReviewIfPossible(
+      metadata: metadata,
+      config: promptConfig,
+      completion: completion
     )
   }
 
-  func promptIfPossible(metadata: [String: String]? = nil, promptConfig: PromptConfig) {
-    promptManager.promptForReviewIfPossible(metadata: metadata, config: promptConfig)
-  }
-
-  private func configure(config: TestimonialKitConfig) {
-    requestQueue.configure(config: config)
+  private func configure() {
+    Task {
+      await requestQueue.configure()
+      await requestQueue.enqueue(
+        apiClient.initSdk()
+      )
+    }
   }
 }
