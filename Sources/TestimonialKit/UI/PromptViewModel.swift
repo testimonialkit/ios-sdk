@@ -13,16 +13,22 @@ enum PromptViewState: Equatable {
 class PromptViewModel: ObservableObject {
   private var cancellables = Set<AnyCancellable>()
   private let promptManager: PromptManagerProtocol
+  private let sdkConfig: TestimonialKitConfig
   @Published var rating: Int = 0
   @Published var comment: String = ""
   @Published var state: PromptViewState = .rating
   @Published var isLoading = false
 
+  var showBranding: Bool {
+    !sdkConfig.hasActiveSubscription
+  }
+
   // Re-entrancy guard for dismiss
   private var didRequestDismiss = false
 
-  init(promptManager: PromptManagerProtocol) {
+  init(promptManager: PromptManagerProtocol, sdkConfig: TestimonialKitConfig) {
     self.promptManager = promptManager
+    self.sdkConfig = sdkConfig
     promptManager.feedbackEventPublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] (event) in

@@ -59,7 +59,7 @@ extension Container {
   @MainActor
   var promptViewModel: Factory<PromptViewModel> {
     self { @MainActor in
-      PromptViewModel(promptManager: self.promptManager())
+      PromptViewModel(promptManager: self.promptManager(), sdkConfig: self.configuration())
     }
   }
 }
