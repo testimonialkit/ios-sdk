@@ -91,7 +91,7 @@ class PromptViewModel: ObservableObject {
         setStateDeferred(.thankYou(data: data))
       }
     } else {
-      promptManager.dismissPrompt(on: state)
+      requestDismiss(as: state)
     }
   }
 
