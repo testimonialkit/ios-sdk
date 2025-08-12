@@ -7,7 +7,8 @@ public class TestimonialKit {
 
   private init() {}
 
-  public static func setup(with apiKey: String) {
+  public static func setup(with apiKey: String, logLevel: LogLevel = .error) {
+    Logger.shared.currentLevel = logLevel
     let manager = resolve(\.testimonialKitManager)
     manager.setup(with: apiKey)
   }

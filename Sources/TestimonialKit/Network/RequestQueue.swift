@@ -44,7 +44,7 @@ actor RequestQueue {
   }
 
   func enqueue(_ request: QueuedRequest) async {
-    print("RequestQueue \(debugId) enqueue:", request.eventType)
+    Logger.shared.verbose("RequestQueue \(debugId) enqueue: \(request.eventType)")
     await queue.append(request)
     await saveQueue()
     await processNextIfNeeded()
@@ -119,10 +119,8 @@ actor RequestQueue {
   private func saveQueue() async {
     let snapshot = self.queue
     let url = self.saveURL
-    Task.detached {
-      if let data = try? JSONEncoder().encode(snapshot) {
-        try? data.write(to: url)
-      }
+    if let data = try? JSONEncoder().encode(snapshot) {
+      try? data.write(to: url)
     }
   }
 }
