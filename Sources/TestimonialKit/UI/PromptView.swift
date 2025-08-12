@@ -63,13 +63,10 @@ struct PromptView: View {
       }
       .showBranding()
       .animation(.easeInOut(duration: 0.25), value: viewModel.state)
-      .onAppear {
-        viewModel.handleOnAppear()
-      }
+      .padding(16)
       .onDisappear {
         viewModel.handleOnDisappear()
       }
-      .padding(16)
     }
   }
 

@@ -2,8 +2,10 @@ import SwiftUI
 import Combine
 import Factory
 
-enum PromptViewState: Equatable, Hashable {
-  case rating, comment, thankYou
+enum PromptViewState: Equatable {
+  case rating
+  case comment(data: FeedbackLogResponse)
+  case thankYou(data: FeedbackLogResponse?)
   case storeReview(redirected: Bool)
 }
 
@@ -29,13 +31,13 @@ class PromptViewModel: ObservableObject {
         switch event {
         case .rating(let data):
           if !data.isPositiveRating || data.requestComment {
-            setStateDeferred(.comment)
+            setStateDeferred(.comment(data: data))
           } else if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
             self.promptManager.dismissPrompt(on: .storeReview(redirected: true))
           } else if data.isPositiveRating && data.hasAppStoreId {
             setStateDeferred(.storeReview(redirected: false))
           } else {
-            setStateDeferred(.thankYou)
+            setStateDeferred(.thankYou(data: data))
           }
 
         case .comment(let data):
@@ -44,11 +46,11 @@ class PromptViewModel: ObservableObject {
           } else if data.isPositiveRating && data.hasAppStoreId {
             setStateDeferred(.storeReview(redirected: false))
           } else {
-            setStateDeferred(.thankYou)
+            setStateDeferred(.thankYou(data: data))
           }
 
         case .error:
-          setStateDeferred(.thankYou)
+          setStateDeferred(.thankYou(data: nil))
         }
 
         defer { self.isLoading = false }
@@ -64,8 +66,8 @@ class PromptViewModel: ObservableObject {
       handleSubmitComment()
     case .storeReview:
       requestDismiss(as: .storeReview(redirected: true))
-    case .thankYou:
-      requestDismiss(as: .thankYou)
+    case .thankYou(let data):
+      requestDismiss(as: .thankYou(data: data))
     }
   }
 
@@ -82,21 +84,19 @@ class PromptViewModel: ObservableObject {
   }
 
   func handleDismiss() {
-    promptManager.dismissPrompt(on: state)
-  }
-
-  func handleOnAppear() {
-    // Avoid re-entrancy during transitions
-    DispatchQueue.main.async { [weak self] in
-      self?.promptManager.logPromptShown()
+    if case .comment(let data) = state {
+      if data.isPositiveRating && data.hasAppStoreId {
+        setStateDeferred(.storeReview(redirected: false))
+      } else {
+        setStateDeferred(.thankYou(data: data))
+      }
+    } else {
+      promptManager.dismissPrompt(on: state)
     }
   }
 
   func handleOnDisappear() {
-    // Avoid re-entrancy during transitions
-    DispatchQueue.main.async { [weak self] in
-      self?.promptManager.logPromptDismissed()
-    }
+    promptManager.handlePromptDismissAction(on: state)
   }
 
   private func dismissKeyboard() {

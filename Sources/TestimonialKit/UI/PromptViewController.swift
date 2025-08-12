@@ -1,6 +1,14 @@
 import SwiftUI
 
+@MainActor
+protocol PromptViewControllerDelegate: AnyObject {
+  func promptViewControllerDidAppear()
+  func promptViewControllerDidDisappear()
+}
+
 class PromptViewController<Content: View>: UIHostingController<Content> {
+  weak var delegate: PromptViewControllerDelegate?
+
   override func viewDidLoad() {
     super.viewDidLoad()
 
@@ -58,4 +66,13 @@ class PromptViewController<Content: View>: UIHostingController<Content> {
     }
   }
 
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    delegate?.promptViewControllerDidAppear()
+  }
+
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    delegate?.promptViewControllerDidDisappear()
+  }
 }
