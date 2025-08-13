@@ -64,7 +64,7 @@ public struct PromptConfig: @unchecked Sendable {
     submitButton: PromptConfig.Button? = nil,
     commentField: PromptConfig.TextField? = nil,
     tintColor: Color? = nil,
-    tintColorDark: Color? = nil,
+    tintColorDark: Color? = nil
   ) -> PromptConfig {
     return PromptConfig(
       ratingStrings: ratingStrings ?? self.ratingStrings,
