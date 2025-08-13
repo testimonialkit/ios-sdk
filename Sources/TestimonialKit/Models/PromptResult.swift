@@ -1,18 +1,24 @@
 import Foundation
 
+/// Represents the possible outcomes after a user interacts with a prompt.
+///
+/// Used to track and handle user actions such as dismissing, completing,
+/// or skipping different steps in the prompt flow.
+/// Conforms to `Sendable` for concurrency safety.
 public enum PromptResult: Sendable {
-  /// User did dismiss the prompt without submitting the rating
+  /// The user dismissed the prompt without submitting a rating.
   case cancelled
 
-  /// User did submit the rating and the comment (when applicable)
+  /// The user submitted both a rating and a comment (if applicable).
   case completed
 
-  /// User did submit the rating but without a comment (if the comment was not requested or left empty)
+  /// The user submitted a rating without a comment.
+  /// This may occur if a comment was not requested or was left empty.
   case completedWithoutComment
 
-  /// User was redirected to store after submitting the rating (with or without comment)
+  /// The user was redirected to the app store after submitting a rating, with or without a comment.
   case redirectedToStore
 
-  /// User skipped store review and dismissed the prompt
+  /// The user skipped the store review process and dismissed the prompt.
   case storeReviewSkipped
 }
