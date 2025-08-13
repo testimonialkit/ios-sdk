@@ -22,22 +22,26 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
-          enablement: true  # Auto-enables Pages if not set up
+          enablement: true
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.2'  # Matches Swift 6.0.3
+          xcode-version: '16.2'
       - name: Generate DocC
         uses: fwcd/swift-docc-action@v1
         with:
           target: TestimonialKit
           output: ./docs
-          hosting-base-path: TestimonialKit
+          hosting-base-path: /
           disable-indexing: 'true'
           transform-for-static-hosting: 'true'
+      - name: Add .nojekyll to disable Jekyll
+        run: |
+          mkdir -p docs
+          touch docs/.nojekyll
       - name: Add redirect to index.html
         run: |
-          echo "<script>window.location.href += \"/documentation/testimonialkit\"</script>" > docs/index.html
+          echo '<meta http-equiv="refresh" content="0; url=/documentation/testimonialkit">' > docs/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
