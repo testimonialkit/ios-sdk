@@ -14,22 +14,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
         with:
-          enablement: true  # Add this to auto-enable Pages if not already set up
+          enablement: true
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '16.2'  # Explicitly set; update to '17.0' if needed
       - name: Build DocC
         run: |
           swift package resolve
@@ -43,6 +40,13 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'docs'
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
       - id: deployment
         name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
