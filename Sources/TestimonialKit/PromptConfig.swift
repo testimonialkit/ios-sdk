@@ -72,7 +72,7 @@ public struct PromptConfig: @unchecked Sendable {
       submitButton: submitButton ?? self.submitButton,
       commentField: commentField ?? self.commentField,
       tintColor: tintColor ?? self.tintColor,
-      tintColorDark: tintColorDark ?? self.tintColorDark,
+      tintColorDark: tintColorDark ?? self.tintColorDark
     )
   }
 
