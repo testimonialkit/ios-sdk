@@ -1,4 +1,3 @@
-
 import Foundation
 
 /// Represents the response returned by the backend after logging user feedback.

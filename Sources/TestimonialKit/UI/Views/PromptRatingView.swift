@@ -55,8 +55,13 @@ struct PromptRatingView: View {
           onSubmit()
         } label: {
           if isLoading {
+#if canImport(AppKit)
             ProgressView()
               .frame(maxWidth: .infinity)
+#else
+            ProgressView()
+              .frame(maxWidth: .infinity)
+#endif
           } else {
             Text(strings.submitButtonTitle)
               .frame(maxWidth: .infinity)

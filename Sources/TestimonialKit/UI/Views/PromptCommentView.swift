@@ -31,55 +31,9 @@ struct PromptCommentView: View {
         subtitle: strings.subtitle
       )
 
-      Group {
-        #if canImport(AppKit)
-        /// macOS: use a styled `TextEditor` with placeholder overlay.
-        ZStack(alignment: .topLeading) {
-          /// Placeholder text shown when the comment field is empty.
-          if comment.isEmpty {
-            Text(strings.placeholder)
-              .foregroundColor(.secondary)
-              .padding(.horizontal, 12)
-              .padding(.vertical, 10)
-          }
-          TextEditor(text: $comment)
-            .frame(minHeight: 96, maxHeight: 200)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
-        }
-        .overlay(
-          RoundedRectangle(cornerRadius: appTheme.textFields.shape.radius(for: appTheme))
-            .stroke(.xs)
-        )
-        #else
-        /// iOS: use multiline TextField on iOS 16+, TextEditor fallback on earlier versions.
-        if #available(iOS 16.0, *) {
-          // Multiline TextField (keeps your TextField-based styles)
-          TextField(strings.placeholder, text: $comment, axis: .vertical)
-            .applyThemeTextFieldStyle()
-            .lineLimit(2...6) // grows up to 6 lines
-        } else {
-          /// For iOS 15 and earlier, use a styled TextEditor with a placeholder overlay when empty.
-          ZStack(alignment: .topLeading) {
-            /// Placeholder text shown when the comment field is empty.
-            if comment.isEmpty {
-              Text(strings.placeholder)
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-            }
-            TextEditor(text: $comment)
-              .frame(minHeight: 96, maxHeight: 160)
-              .padding(.horizontal, 8)
-              .padding(.vertical, 8)
-          }
-          .overlay(
-            RoundedRectangle(cornerRadius: appTheme.textFields.shape.radius(for: appTheme))
-              .stroke(.xs)
-          )
-        }
-        #endif
-      }
+      TextField(strings.placeholder, text: $comment, axis: .vertical)
+        .applyThemeTextFieldStyle()
+        .lineLimit(3...6)
 
       VStack(spacing: 16) {
         /// Submit button that invokes `onSubmit` when tapped.

@@ -63,7 +63,7 @@ struct PromptView: View {
       light: lightTheme,
       dark: darkTheme
     ) {
-      ZStack {
+      VStack {
         switch viewModel.state {
         case .rating:
           ratingView

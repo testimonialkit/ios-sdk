@@ -13,18 +13,18 @@ struct QueuedRequestResult: Sendable {
 /// Represents an error that occurred while processing a queued request.
 ///
 /// Includes optional metadata such as HTTP status, URL, error code, and a snippet of the response payload.
-public struct QueueFailure: Error, Sendable {
+struct QueueFailure: Error, Sendable {
   /// Optional error code associated with the failure.
-  public let code: Int?
+  let code: Int?
   /// A human-readable description of the error.
-  public let message: String
+  let message: String
   /// The URL of the request that caused the failure, if available.
-  public let url: URL?
+  let url: URL?
   /// Optional HTTP status code returned by the server.
-  public let status: Int?
+  let status: Int?
   /// A snippet of the response payload body (up to 512 characters) for debugging.
-  public let payloadSnippet: String?
-
+  let payloadSnippet: String?
+  
   /// Creates a new `QueueFailure` from an error and optional metadata.
   ///
   /// - Parameters:
@@ -33,18 +33,18 @@ public struct QueueFailure: Error, Sendable {
   ///   - url: Optional URL of the failed request.
   ///   - status: Optional HTTP status code.
   ///   - payload: Optional raw payload data, from which a snippet will be extracted.
-  public init(_ error: any Error,
-              code: Int? = nil,
-              url: URL? = nil,
-              status: Int? = nil,
-              payload: Data? = nil) {
+  init(_ error: any Error,
+       code: Int? = nil,
+       url: URL? = nil,
+       status: Int? = nil,
+       payload: Data? = nil) {
     self.code = code
     self.message = String(describing: error)
     self.url = url
     self.status = status
     self.payloadSnippet = payload.flatMap { String(data: $0, encoding: .utf8) }?.prefix(512).description
   }
-
+  
   /// A concatenated string describing the error, including HTTP status, URL, message, and payload snippet.
   public var errorDescription: String? {
     var parts: [String] = []
@@ -59,17 +59,17 @@ public struct QueueFailure: Error, Sendable {
 /// Represents the result of a queued operation, containing either a success value or a `QueueFailure`.
 ///
 /// This is similar to Swift's `Result` type but specialized for queued request handling.
-public enum QueueResult<Success: Sendable>: Sendable {
+enum QueueResult<Success: Sendable>: Sendable {
   /// Indicates that the operation completed successfully with the given value.
   case success(Success)
   /// Indicates that the operation failed with the given `QueueFailure`.
   case failure(QueueFailure)
-
+  
   /// Executes a throwing closure and wraps its outcome in a `QueueResult`.
   ///
   /// - Parameter body: A closure that may throw an error.
   ///   If it returns a value, `.success` is created; if it throws, `.failure` is created with the error.
-  public init(catching body: () throws -> Success) {
+  init(catching body: () throws -> Success) {
     do { self = .success(try body()) }
     catch { self = .failure(QueueFailure(error)) }
   }

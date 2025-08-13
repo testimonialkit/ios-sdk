@@ -4,8 +4,7 @@ import Factory
 
 #if canImport(UIKit)
 import UIKit
-#endif
-#if canImport(AppKit)
+#elseif canImport(AppKit)
 import AppKit
 #endif
 
@@ -155,7 +154,7 @@ class PromptViewModel: ObservableObject {
   /// Called when the prompt view disappears; notifies the manager of dismissal.
   func handleOnDisappear() {
     Task { [weak self] in
-      guard let self else { return }
+      guard let self, !didRequestDismiss else { return }
       await promptManager.handlePromptDismissAction(on: state)
     }
   }
@@ -239,6 +238,7 @@ class PromptViewModel: ObservableObject {
     Task { [weak self] in
       guard let self else { return }
       await promptManager.dismissPrompt(on: finalState)
+      await MainActor.run { didRequestDismiss = false }
     }
   }
 }
