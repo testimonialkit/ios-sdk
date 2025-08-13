@@ -32,12 +32,16 @@ jobs:
         with:
           target: TestimonialKit
           output: ./docs
-          hosting-base-path: TestimonialKit
+          hosting-base-path: /
           disable-indexing: 'true'
           transform-for-static-hosting: 'true'
+      - name: Add .nojekyll to disable Jekyll
+        run: |
+          mkdir -p docs
+          touch docs/.nojekyll
       - name: Add redirect to index.html
         run: |
-          echo "<script>window.location.href += \"/documentation/testimonialkit\"</script>" > docs/index.html
+          echo '<meta http-equiv="refresh" content="0; url=/documentation/testimonialkit">' > docs/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
