@@ -22,11 +22,11 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
-          enablement: true  # Auto-enables Pages if not set up
+          enablement: true
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.2'  # Matches Swift 6.0.3
+          xcode-version: '16.2'
       - name: Generate DocC
         uses: fwcd/swift-docc-action@v1
         with:
