@@ -20,7 +20,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
     .package(url: "https://github.com/Charlyk/swift-theme-kit.git", from: "1.0.5"),
     .package(url: "https://github.com/hmlongco/Factory.git", from: "2.5.3"),
-    .package(url: "https://github.com/simibac/ConfettiSwiftUI.git", from: "2.0.3")
+    .package(url: "https://github.com/simibac/ConfettiSwiftUI.git", from: "2.0.3"),
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
