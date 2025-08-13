@@ -1,18 +1,40 @@
 import SwiftUI
 import SwiftThemeKit
 
+/// Encapsulates all customizable configuration for the in-app feedback prompt.
+/// Includes localized strings, component styles, and tint colors for both light and dark mode.
+/// Conforms to `@unchecked Sendable` for use across concurrency domains.
 public struct PromptConfig: @unchecked Sendable {
+  /// A default `PromptConfig` instance with stock strings, styles, and colors.
   public static let defaultConfig: PromptConfig = .init()
 
+  /// Localized strings shown during the rating step.
   var ratingStrings: RatingStrings
+  /// Localized strings shown during the comment step.
   var commentStrings: CommentStrings
+  /// Localized strings for the App Store review prompt step.
   var storeReviewStrings: StoreReviewStrings
+  /// Localized strings for the final thank-you screen.
   var thankYouStrings: ThankYouStrings
+  /// Visual style configuration for the comment text field.
   var commentField: PromptConfig.TextField
+  /// Visual style configuration for the submit button.
   var submitButton: PromptConfig.Button
+  /// Primary accent color for the prompt in light mode.
   var tintColor: Color
+  /// Primary accent color for the prompt in dark mode.
   var tintColorDark: Color
 
+  /// Creates a `PromptConfig` with optional overrides for any subset of its configuration values.
+  /// - Parameters:
+  ///   - ratingStrings: Strings for the rating step.
+  ///   - commentStrings: Strings for the comment step.
+  ///   - storeReviewStrings: Strings for the store review step.
+  ///   - thankYouStrings: Strings for the thank-you step.
+  ///   - submitButton: Style for the submit button.
+  ///   - commentField: Style for the comment text field.
+  ///   - tintColor: Accent color for light mode.
+  ///   - tintColorDark: Accent color for dark mode.
   public init(
     ratingStrings: RatingStrings = .init(),
     commentStrings: CommentStrings = .init(),
@@ -33,6 +55,9 @@ public struct PromptConfig: @unchecked Sendable {
     self.tintColorDark = tintColorDark
   }
 
+  /// Returns a copy of this configuration with selectively overridden values.
+  /// - Parameters: Same as the stored properties to override.
+  /// - Returns: A new `PromptConfig` with updated fields.
   public func copy(
     ratingStrings: RatingStrings? = nil,
     commentStrings: CommentStrings? = nil,
@@ -51,11 +76,17 @@ public struct PromptConfig: @unchecked Sendable {
     )
   }
 
+  /// Configuration for the comment text field's shape, variant, and size.
   public struct TextField {
+    /// Shape of the text field (e.g., rounded).
     var shape: TextFieldShape
+    /// Visual variant of the text field (e.g., outlined, filled).
     var variant: TextFieldVariant
+    /// Size preset for the text field.
     var size: TextFieldSize
 
+    /// Creates a `TextField` style configuration.
+    /// - Parameters: Shape, variant, and size to use.
     public init(
       shape: TextFieldShape = .rounded,
       variant: TextFieldVariant = .outlined,
@@ -67,11 +98,17 @@ public struct PromptConfig: @unchecked Sendable {
     }
   }
 
+  /// Configuration for the prompt's submit button shape, variant, and size.
   public struct Button {
+    /// Shape of the button.
     var shape: ButtonShape
+    /// Visual variant of the button (e.g., filled, outlined).
     var variant: ButtonVariant
+    /// Size preset for the button.
     var size: ButtonSize
 
+    /// Creates a `Button` style configuration.
+    /// - Parameters: Shape, variant, and size to use.
     public init(
       shape: ButtonShape = .rounded,
       variant: ButtonVariant = .filled,
@@ -83,14 +120,24 @@ public struct PromptConfig: @unchecked Sendable {
     }
   }
 
+  /// Localized strings for the rating step of the prompt.
   public struct RatingStrings {
+    /// Main title for the rating step.
     var title: String
+    /// Subtitle text displayed below the title.
     var subtitle: String
+    /// Label above the star rating control.
     var ratingLabel: String
+    /// Accessibility labels for each star rating (must contain exactly 5 entries).
     var starLabels: [String]
+    /// Title for the submit button in the rating step.
     var submitButtonTitle: String
+    /// Title for the cancel button in the rating step.
     var cancelButtonTitle: String
 
+    /// Creates `RatingStrings` with optional custom values.
+    /// - Parameters: Titles, subtitles, labels, and button titles.
+    /// - Note: `starLabels` must contain exactly 5 elements.
     public init(
       title: String = "Rate this app",
       subtitle: String = "Your feedback is precious to us.",
@@ -112,13 +159,21 @@ public struct PromptConfig: @unchecked Sendable {
     }
   }
 
+  /// Localized strings for the comment step of the prompt.
   public struct CommentStrings {
+    /// Main title for the comment step.
     var title: String
+    /// Subtitle text displayed below the title.
     var subtitle: String
+    /// Placeholder text shown in the comment input field.
     var placeholder: String
+    /// Title for the submit button in the comment step.
     var submitButtonTitle: String
+    /// Title for the cancel button in the comment step.
     var cancelButtonTitle: String
 
+    /// Creates `CommentStrings` with optional custom values.
+    /// - Parameters: Titles, subtitles, placeholders, and button titles.
     public init(
       title: String = "Leave a comment",
       subtitle: String = "We value your honest opinion.",
@@ -134,12 +189,19 @@ public struct PromptConfig: @unchecked Sendable {
     }
   }
 
+  /// Localized strings for the App Store review prompt step.
   public struct StoreReviewStrings {
+    /// Title for the store review prompt.
     var title: String
+    /// Message encouraging the user to review in the App Store.
     var message: String
+    /// Title for the submit button in the store review step.
     var submitButtonTitle: String
+    /// Title for the cancel button in the store review step.
     var cancelButtonTitle: String
 
+    /// Creates `StoreReviewStrings` with optional custom values.
+    /// - Parameters: Titles, messages, and button titles.
     public init(
       title: String = "Thank you!",
       message: String = "What about reviewing us in the App Store?",
@@ -153,11 +215,17 @@ public struct PromptConfig: @unchecked Sendable {
     }
   }
 
+  /// Localized strings for the final thank-you screen.
   public struct ThankYouStrings {
+    /// Title for the thank-you screen.
     var title: String
+    /// Message displayed on the thank-you screen.
     var message: String
+    /// Title for the close button on the thank-you screen.
     var closeButtonTitle: String
-    
+
+    /// Creates `ThankYouStrings` with optional custom values.
+    /// - Parameters: Titles, messages, and button titles.
     public init(
       title: String = "Thank you!",
       message: String = "Your feedback is precious to us.",

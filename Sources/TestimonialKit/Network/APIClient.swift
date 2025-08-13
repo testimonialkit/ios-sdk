@@ -1,10 +1,22 @@
 import Foundation
 
+/// Defines the interface for an API client that communicates with the TestimonialKit backend.
+///
+/// Provides methods for initializing the SDK, checking prompt eligibility, sending app events,
+/// prompt events, feedback events, feedback comments, and executing queued requests.
 protocol APIClientProtocol: AnyObject, Sendable {
+  /// Creates a queued request to initialize the SDK with required configuration details.
   func initSdk() -> QueuedRequest
 
+  /// Creates a queued request to check if a prompt should be displayed to the user.
   func checkPromptEligibility() -> QueuedRequest
 
+  /// Creates a queued request to send a generic app event to the backend.
+  /// - Parameters:
+  ///   - name: The name of the event.
+  ///   - score: A numerical score associated with the event.
+  ///   - type: The type of the app event (default is `.positive`).
+  ///   - metadata: Optional key-value metadata to attach to the event.
   func sendAppEvent(
     name: String,
     score: Int,
@@ -12,6 +24,12 @@ protocol APIClientProtocol: AnyObject, Sendable {
     metadata: [String: String]?
   ) -> QueuedRequest
 
+  /// Creates a queued request to log a prompt-related event.
+  /// - Parameters:
+  ///   - type: The type of prompt event (e.g., shown, dismissed).
+  ///   - previousEventId: The ID of the previous related event.
+  ///   - feedbackEventId: Optional ID of a feedback event related to this prompt.
+  ///   - metadata: Optional key-value metadata to attach to the event.
   func sendPromptEvent(
     type: PromptEventType,
     previousEventId: String,
@@ -19,6 +37,12 @@ protocol APIClientProtocol: AnyObject, Sendable {
     metadata: [String: String]?
   ) -> QueuedRequest
 
+  /// Creates a queued request to submit feedback data.
+  /// - Parameters:
+  ///   - promptEventId: The ID of the related prompt event.
+  ///   - rating: Numerical rating given by the user.
+  ///   - comment: Optional text comment from the user.
+  ///   - metadata: Optional key-value metadata.
   func sendFeedbackEvent(
     promptEventId: String,
     rating: Int,
@@ -26,20 +50,36 @@ protocol APIClientProtocol: AnyObject, Sendable {
     metadata: [String: String]?
   ) -> QueuedRequest
 
+  /// Creates a queued request to submit or update a feedback comment.
+  /// - Parameters:
+  ///   - comment: The comment text.
+  ///   - feedbackEventId: The ID of the feedback event to update.
   func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest
 
+  /// Executes a queued request against the backend.
+  /// - Parameter queuedRequest: The request to execute.
+  /// - Returns: The raw `Data` returned from the backend.
+  /// - Throws: `QueueFailure` if the request fails.
   func execute(queuedRequest: QueuedRequest) async throws -> Data
 }
 
+/// Concrete implementation of `APIClientProtocol` for communicating with the TestimonialKit backend.
+///
+/// Handles request building, encoding, execution, and error handling.
 final class APIClient: APIClientProtocol {
+  /// The configuration object containing API keys, user identifiers, and other SDK settings.
   private let config: TestimonialKitConfig
 
+  /// Creates a new API client instance.
+  /// - Parameter config: The SDK configuration to use for all requests.
   init(
     config: TestimonialKitConfig
   ) {
     self.config = config
   }
 
+  /// Concrete implementation of `initSdk()`.
+  /// Creates a queued request to initialize the SDK with required configuration details.
   func initSdk() -> QueuedRequest {
     let body = [
       "userId": config.userId,
@@ -62,8 +102,10 @@ final class APIClient: APIClientProtocol {
     )
   }
 
+  /// Concrete implementation of `checkPromptEligibility()`.
+  /// Creates a queued request to check if a prompt should be displayed to the user.
   func checkPromptEligibility() -> QueuedRequest {
-    var body: [String: Any] = [
+    let body: [String: Any] = [
       "appVersion": config.appVersion,
       "userId": config.userId,
       "locale": config.countryCode,
@@ -87,6 +129,13 @@ final class APIClient: APIClientProtocol {
     )
   }
 
+  /// Concrete implementation of `sendAppEvent(...)`.
+  /// Creates a queued request to send a generic app event to the backend.
+  /// - Parameters:
+  ///   - name: The name of the event.
+  ///   - score: A numerical score associated with the event.
+  ///   - type: The type of the app event (default is `.positive`).
+  ///   - metadata: Optional key-value metadata to attach to the event.
   func sendAppEvent(
     name: String,
     score: Int,
@@ -119,6 +168,13 @@ final class APIClient: APIClientProtocol {
     )
   }
 
+  /// Concrete implementation of `sendPromptEvent(...)`.
+  /// Creates a queued request to log a prompt-related event.
+  /// - Parameters:
+  ///   - type: The type of prompt event (e.g., shown, dismissed).
+  ///   - previousEventId: The ID of the previous related event.
+  ///   - feedbackEventId: Optional ID of a feedback event related to this prompt.
+  ///   - metadata: Optional key-value metadata to attach to the event.
   func sendPromptEvent(
     type: PromptEventType,
     previousEventId: String,
@@ -129,9 +185,12 @@ final class APIClient: APIClientProtocol {
       "userId": config.userId,
       "status": type.rawValue,
       "previousEventId": previousEventId,
-      "appVersion": config.appVersion,
-      "feedbackEventId": feedbackEventId
+      "appVersion": config.appVersion
     ]
+
+    if let feedbackEventId {
+      body["feedbackEventId"] = feedbackEventId
+    }
 
     if let metadata {
       body["metadata"] = metadata
@@ -154,6 +213,13 @@ final class APIClient: APIClientProtocol {
     )
   }
 
+  /// Concrete implementation of `sendFeedbackEvent(...)`.
+  /// Creates a queued request to submit feedback data.
+  /// - Parameters:
+  ///   - promptEventId: The ID of the related prompt event.
+  ///   - rating: Numerical rating given by the user.
+  ///   - comment: Optional text comment from the user.
+  ///   - metadata: Optional key-value metadata.
   func sendFeedbackEvent(
     promptEventId: String,
     rating: Int,
@@ -164,9 +230,12 @@ final class APIClient: APIClientProtocol {
       "userId": config.userId,
       "rating": rating,
       "promptEventId": promptEventId,
-      "comment": comment,
       "appVersion": config.appVersion
     ]
+
+    if let comment {
+      body["comment"] = comment
+    }
 
     if let metadata {
       body["metadata"] = metadata
@@ -186,12 +255,20 @@ final class APIClient: APIClientProtocol {
     )
   }
 
+  /// Concrete implementation of `sendFeedbackComment(comment:feedbackEventId:)`.
+  /// Creates a queued request to submit or update a feedback comment.
+  /// - Parameters:
+  ///   - comment: The comment text.
+  ///   - feedbackEventId: The ID of the feedback event to update.
   func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest {
     var body: [String: Any] = [
-      "comment": comment,
       "feedbackEventId": feedbackEventId,
       "userId": config.userId
     ]
+
+    if let comment {
+      body["comment"] = comment
+    }
 
     return QueuedRequest(
       eventType: .sendFeedbackComment,
@@ -207,6 +284,11 @@ final class APIClient: APIClientProtocol {
     )
   }
 
+  /// Concrete implementation of `execute(queuedRequest:)`.
+  /// Executes a queued request against the backend.
+  /// - Parameter queuedRequest: The request to execute.
+  /// - Returns: The raw `Data` returned from the backend.
+  /// - Throws: `QueueFailure` if the request fails.
   func execute(queuedRequest: QueuedRequest) async throws -> Data {
     var request = buildRequest(to: queuedRequest.path)
     request.httpMethod = queuedRequest.method
@@ -234,6 +316,9 @@ final class APIClient: APIClientProtocol {
     }
   }
 
+  /// Builds a `URLRequest` for the given API path.
+  /// - Parameter path: The API endpoint path.
+  /// - Returns: A `URLRequest` targeting the full API URL.
   func buildRequest(to path: String) -> URLRequest {
     let url = Constants
       .baseUrl
@@ -244,10 +329,16 @@ final class APIClient: APIClientProtocol {
     return buildRequest(to: url)
   }
 
+  /// Builds a `URLRequest` for the given full URL.
+  /// - Parameter url: The target URL.
+  /// - Returns: A `URLRequest` for the given URL.
   func buildRequest(to url: URL) -> URLRequest {
     return URLRequest(url: url)
   }
 
+  /// Builds `URLComponents` for the given API path.
+  /// - Parameter path: The API endpoint path.
+  /// - Returns: A `URLComponents` object representing the full API URL.
   func buildComponents(with path: String) -> URLComponents {
     let url = Constants
       .baseUrl
@@ -258,6 +349,9 @@ final class APIClient: APIClientProtocol {
     return URLComponents(url: url, resolvingAgainstBaseURL: false)!
   }
 
+  /// Returns the weekday index for the given date, with Monday as zero.
+  /// - Parameter date: The date to evaluate.
+  /// - Returns: An integer from 0 (Monday) to 6 (Sunday).
   private func mondayZeroWeekdayIndex(for date: Date) -> Int {
     let iso = Calendar(identifier: .iso8601)
     return iso.component(.weekday, from: date) - 1
