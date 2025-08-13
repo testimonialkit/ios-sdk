@@ -1,3 +1,5 @@
+import Foundation
+
 /// Represents the various types of API events that can be sent by the SDK.
 ///
 /// Each case corresponds to a specific backend endpoint or operation,

@@ -1,5 +1,5 @@
 {
-  "originHash" : "4d04eacea469588240eb8bc63c0b64f7b8277973b91232fee4cd4ac02934c757",
+  "originHash" : "78e201b9e53012ff2a4ad6e3e7d16c85907b7e0e4c564f3386f7455d4caa8812",
   "pins" : [
     {
       "identity" : "confettiswiftui",
@@ -20,12 +20,30 @@
       }
     },
     {
+      "identity" : "swift-docc-plugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-docc-plugin",
+      "state" : {
+        "revision" : "3e4f133a77e644a5812911a0513aeb7288b07d06",
+        "version" : "1.4.5"
+      }
+    },
+    {
+      "identity" : "swift-docc-symbolkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-docc-symbolkit",
+      "state" : {
+        "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
+        "version" : "1.0.0"
+      }
+    },
+    {
       "identity" : "swift-theme-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Charlyk/swift-theme-kit.git",
       "state" : {
-        "revision" : "d81bac4144e7f0a94969ed17a250fc0862de1340",
-        "version" : "1.0.4"
+        "branch" : "fixAssets",
+        "revision" : "750dfb2e49cb754d0abb0d670425e819bb73e82e"
       }
     }
   ],

@@ -4,10 +4,10 @@ import Factory
 
 #if canImport(UIKit)
 import UIKit
-public typealias PlatformViewController = UIViewController
+typealias PlatformViewController = UIViewController
 #elseif canImport(AppKit)
 import AppKit
-public typealias PlatformViewController = NSViewController
+typealias PlatformViewController = NSViewController
 #endif
 
 /// Represents the lifecycle of the in-app feedback prompt.

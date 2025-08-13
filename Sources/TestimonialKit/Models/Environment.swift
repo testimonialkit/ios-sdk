@@ -1,3 +1,5 @@
+import Foundation
+
 /// Represents the runtime environment configuration for the application.
 ///
 /// Used to distinguish between production, staging, and development environments.

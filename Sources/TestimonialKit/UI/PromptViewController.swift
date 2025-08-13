@@ -106,6 +106,7 @@ class PromptViewController<Content: View>: UIHostingController<Content> {
 #if canImport(AppKit)
 import AppKit
 
+@MainActor
 /// A `NSHostingController` wrapper that presents SwiftUI content in a macOS sheet sized
 /// to the content’s intrinsic height at the current window width. The controller forwards
 /// appear/disappear events to a delegate.
@@ -113,25 +114,92 @@ class PromptViewController<Content: View>: NSHostingController<Content> {
   /// Receiver of appear/disappear callbacks for this prompt controller.
   weak var delegate: PromptViewControllerDelegate?
 
+  /// Tracks the most recently applied preferred content size to avoid resize loops.
+  private var lastAppliedSize: CGSize = .zero
+  /// Guard to prevent re-entrant sizing during a layout pass.
+  private var isApplyingSize: Bool = false
+  /// Coalesces pending size applications to avoid rapid re-entrant layout.
+  private var pendingSizeWork: DispatchWorkItem?
+  /// Observer token for window resize notifications.
+  private var resizeObserver: NSObjectProtocol?
+
   /// Updates the preferred content size to match the SwiftUI view’s fitting size at the
-  /// current window width. Call on layout and when the window changes size.
+  /// current window width. Debounces and guards against re-entrant layout to avoid
+  /// “needs another Update Constraints in Window pass” loops.
   private func updatePreferredSize() {
+    // If we're mid-application, let the pending work finish first
+    if isApplyingSize { return }
+
     // Ensure layout is up-to-date to get a correct fitting size.
     view.layoutSubtreeIfNeeded()
 
-    // Use the window’s content width if available; otherwise, keep the current width.
-    let targetWidth: CGFloat = view.window?.contentLayoutRect.width ?? view.bounds.width
+    let insets = view.safeAreaInsets
+    let measuredViewWidth = self.view.bounds.width - (insets.left + insets.right)
+    // Use a fallback width if no reasonable width is available yet
+    let fallbackWidth: CGFloat = 400
+    let width = measuredViewWidth > 0 ? measuredViewWidth : (view.window?.contentLayoutRect.width ?? max(view.bounds.width, fallbackWidth))
+
+    // Ask the hosting controller to size the SwiftUI content at this width
+    let fitting = CGSize(width: width, height: .greatestFiniteMagnitude)
+    let measuredHeight = self.sizeThatFits(in: fitting).height
+
+    // Ask SwiftUI for its fitting size at this width.
     var size = view.fittingSize
-    size.width = max(targetWidth, 0)
-    // Guard against zero/invalid heights; give a sensible minimum.
+    size.width = max(width, size.width) // Respect the content's fitting width if larger
+    size.height = measuredHeight
     if !size.height.isFinite || size.height <= 0 { size.height = 200 }
 
-    preferredContentSize = size
-
-    // If presented as a sheet, resizing the sheet’s window gives a better experience.
-    if let sheet = view.window {
-      sheet.setContentSize(size)
+    // If the size hasn't changed meaningfully, bail early.
+    let epsilon: CGFloat = 0.5
+    let approximatelyEqual = { (a: CGSize, b: CGSize) -> Bool in
+      abs(a.width - b.width) < epsilon && abs(a.height - b.height) < epsilon
     }
+    if approximatelyEqual(size, lastAppliedSize) { return }
+
+    // Coalesce updates onto the next runloop tick and avoid resizing during layout.
+    isApplyingSize = true
+    pendingSizeWork?.cancel()
+
+//    let work = DispatchWorkItem { [weak self] in
+//      guard let self = self else { return }
+//      if let window = self.view.window {
+//        let currentContentRect = window.contentRect(forFrameRect: window.frame)
+//        var newContentRect = currentContentRect
+//        newContentRect.size = size
+//        let newFrame = window.frameRect(forContentRect: newContentRect)
+//        window.setFrame(newFrame, display: true, animate: true)
+//      } else {
+//        self.preferredContentSize = size
+//      }
+//      self.lastAppliedSize = size
+//      self.isApplyingSize = false
+//    }
+
+//    pendingSizeWork = work
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+      if let window = self.view.window {
+        let currentContentRect = window.contentRect(forFrameRect: window.frame)
+        var newContentRect = currentContentRect
+        newContentRect.size = size
+        let newFrame = window.frameRect(forContentRect: newContentRect)
+        window.setFrame(newFrame, display: true, animate: true)
+      } else {
+        self.preferredContentSize = size
+      }
+      self.lastAppliedSize = size
+      self.isApplyingSize = false
+    }
+  }
+
+  /// Coalesces size updates to avoid rapid re-entrant layout while the window is resizing.
+  private func scheduleSizeUpdate(after delay: TimeInterval = 0.06) {
+    pendingSizeWork?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      self?.updatePreferredSize()
+    }
+    pendingSizeWork = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
   }
 
   override func viewDidLoad() {
@@ -139,15 +207,36 @@ class PromptViewController<Content: View>: NSHostingController<Content> {
     updatePreferredSize()
   }
 
-  override func viewDidLayout() {
-    super.viewDidLayout()
-    updatePreferredSize()
-  }
-
   override func viewDidAppear() {
     super.viewDidAppear()
-    updatePreferredSize()
+
+    // Register for window resize events to update the preferred size after the resize settles.
+    if let window = view.window {
+      resizeObserver = NotificationCenter.default.addObserver(
+        forName: NSWindow.didResizeNotification,
+        object: window,
+        queue: .main
+      ) { [weak self] _ in
+        // While resizing, avoid tight loops; coalesce updates slightly.
+        Task { @MainActor in
+          self?.scheduleSizeUpdate(after: 0.08)
+        }
+      }
+    }
+
+    // Initial sizing once visible
+    scheduleSizeUpdate(after: 0.0)
+
     delegate?.promptViewControllerDidAppear()
+  }
+
+  override func viewWillDisappear() {
+    super.viewWillDisappear()
+    if let token = resizeObserver {
+      NotificationCenter.default.removeObserver(token)
+      resizeObserver = nil
+    }
+    pendingSizeWork?.cancel()
   }
 
   override func viewDidDisappear() {
