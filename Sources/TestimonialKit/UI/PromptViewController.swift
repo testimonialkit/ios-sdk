@@ -160,22 +160,6 @@ class PromptViewController<Content: View>: NSHostingController<Content> {
     isApplyingSize = true
     pendingSizeWork?.cancel()
 
-//    let work = DispatchWorkItem { [weak self] in
-//      guard let self = self else { return }
-//      if let window = self.view.window {
-//        let currentContentRect = window.contentRect(forFrameRect: window.frame)
-//        var newContentRect = currentContentRect
-//        newContentRect.size = size
-//        let newFrame = window.frameRect(forContentRect: newContentRect)
-//        window.setFrame(newFrame, display: true, animate: true)
-//      } else {
-//        self.preferredContentSize = size
-//      }
-//      self.lastAppliedSize = size
-//      self.isApplyingSize = false
-//    }
-
-//    pendingSizeWork = work
     DispatchQueue.main.async { [weak self] in
       guard let self = self else { return }
       if let window = self.view.window {
@@ -212,6 +196,7 @@ class PromptViewController<Content: View>: NSHostingController<Content> {
 
     // Register for window resize events to update the preferred size after the resize settles.
     if let window = view.window {
+      window.styleMask.remove(.resizable)
       resizeObserver = NotificationCenter.default.addObserver(
         forName: NSWindow.didResizeNotification,
         object: window,

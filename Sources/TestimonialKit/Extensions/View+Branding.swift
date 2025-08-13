@@ -10,6 +10,7 @@ extension View {
     if !show {
       self
     } else {
+#if canImport(UIKit)
       self.overlay(alignment: .bottom, content: {
         HStack(spacing: 4) {
           Text("Powered by")
@@ -23,8 +24,26 @@ extension View {
             .frame(height: 20)
             .foregroundColor(.onSurface)
         }
-        .offset(y: 45)
+        .offset(y: 15)
       })
+#else
+      VStack {
+        self
+        HStack(spacing: 4) {
+          Text("Powered by")
+            .font(.labelSmall)
+            .foregroundColor(.onSurface)
+
+          Image("logoFull", bundle: .module)
+            .renderingMode(.template)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(height: 20)
+            .foregroundColor(.onSurface)
+        }
+        .padding(.bottom)
+      }
+#endif
     }
   }
 }
