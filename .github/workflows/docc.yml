@@ -22,19 +22,21 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
-          enablement: true
+          enablement: true  # Auto-enables Pages if not set up
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.2'  # Explicitly set; update to '17.0' if needed
-      - name: Build DocC
+          xcode-version: '16.2'  # Matches Swift 6.0.3
+      - name: Generate DocC
+        uses: fwcd/swift-docc-action@v1
+        with:
+          target: TestimonialKit
+          output: ./docs
+          hosting-base-path: TestimonialKit
+          disable-indexing: 'true'
+          transform-for-static-hosting: 'true'
+      - name: Add redirect to index.html
         run: |
-          swift package resolve
-          xcodebuild docbuild -scheme TestimonialKit -derivedDataPath /tmp/docbuild -destination 'generic/platform=iOS'
-          $(xcrun --find docc) process-archive \
-            transform-for-static-hosting /tmp/docbuild/Build/Products/Debug-iphoneos/TestimonialKit.doccarchive \
-            --output-path docs \
-            --hosting-base-path TestimonialKit
           echo "<script>window.location.href += \"/documentation/testimonialkit\"</script>" > docs/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
