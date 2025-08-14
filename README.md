@@ -214,3 +214,5 @@ TestimonialKit is available under the MIT license. See the LICENSE file for more
 ## Support
 
 For issues or feature requests, please visit our [GitHub issues page](https://github.com/testimonialkit/ios-sdk/issues) or contact support at `support@testimonialkit.dev`.
+
+For full documentation, please visit [Documentation Page](https://testimonialkit.github.io/ios-sdk/).
