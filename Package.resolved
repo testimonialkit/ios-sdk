@@ -1,5 +1,5 @@
 {
-  "originHash" : "78e201b9e53012ff2a4ad6e3e7d16c85907b7e0e4c564f3386f7455d4caa8812",
+  "originHash" : "f28979ab6016f4d859e18129b8a3d2db02191cb2f02b236767d0676501b7d241",
   "pins" : [
     {
       "identity" : "confettiswiftui",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Charlyk/swift-theme-kit.git",
       "state" : {
-        "branch" : "fixAssets",
-        "revision" : "750dfb2e49cb754d0abb0d670425e819bb73e82e"
+        "revision" : "68e5afb6f21355ff97545413041b6a49ba0f4d4b",
+        "version" : "1.0.5"
       }
     }
   ],

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>AppEnvironment Enumeration Reference</title>
+    <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    <meta charset='utf-8'>
+    <script src="../js/jquery.min.js" defer></script>
+    <script src="../js/jazzy.js" defer></script>
+    
+    <script src="../js/lunr.min.js" defer></script>
+    <script src="../js/typeahead.jquery.js" defer></script>
+    <script src="../js/jazzy.search.js" defer></script>
+  </head>
+  <body>
+    <a name="//apple_ref/swift/Enum/AppEnvironment" class="dashAnchor"></a>
+    <a title="AppEnvironment Enumeration Reference"></a>
+    <header>
+      <div class="content-wrapper">
+        <p><a href="../index.html">TestimonialKit 1.0.0 Docs</a> (87% documented)</p>
+        <p class="header-right"><a href="https://github.com/testimonialkit/ios-sdk"><img src="../img/gh.png" alt="GitHub"/>View on GitHub</a></p>
+        <div class="header-right">
+          <form role="search" action="../search.json">
+            <input type="text" placeholder="Search documentation" data-typeahead>
+          </form>
+        </div>
+      </div>
+    </header>
+    <div class="content-wrapper">
+      <p id="breadcrumbs">
+        <a href="../index.html">TestimonialKit</a>
+        <img id="carat" src="../img/carat.png" alt=""/>
+        <a href="../Enums.html">Enumerations</a>
+        <img id="carat" src="../img/carat.png" alt=""/>
+        AppEnvironment Enumeration Reference
+      </p>
+    </div>
+    <div class="content-wrapper">
+      <nav class="sidebar">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a href="../Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Classes/TestimonialKit.html">TestimonialKit</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Enums/AppEnvironment.html">AppEnvironment</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/AppEventType.html">AppEventType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/LogLevel.html">LogLevel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/PromptResult.html">PromptResult</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Structs/PromptConfig.html">PromptConfig</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PromptConfig/TextField.html">– TextField</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PromptConfig/Button.html">– Button</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PromptConfig/RatingStrings.html">– RatingStrings</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PromptConfig/CommentStrings.html">– CommentStrings</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PromptConfig/StoreReviewStrings.html">– StoreReviewStrings</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/PromptConfig/ThankYouStrings.html">– ThankYouStrings</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+        <section>
+          <section class="section">
+            <h1>AppEnvironment</h1>
+              <div class="declaration">
+                <div class="language">
+                  
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">enum</span> <span class="kt">AppEnvironment</span> <span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="kt">Codable</span><span class="p">,</span> <span class="kt">Sendable</span></code></pre>
+
+                </div>
+              </div>
+            <p>Represents the runtime environment configuration for the application.</p>
+
+<p>Used to distinguish between production, staging, and development environments.
+Conforms to <code>Codable</code> for persistence and <code>Sendable</code> for concurrency safety.</p>
+
+          </section>
+          <section class="section task-group-section">
+            <div class="task-group">
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:14TestimonialKit14AppEnvironmentO10productionyA2CmF"></a>
+                    <a name="//apple_ref/swift/Element/production" class="dashAnchor"></a>
+                    <a class="token" href="#/s:14TestimonialKit14AppEnvironmentO10productionyA2CmF">production</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>The production environment, used for live deployments with real users.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">case</span> <span class="n">production</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:14TestimonialKit14AppEnvironmentO7stagingyA2CmF"></a>
+                    <a name="//apple_ref/swift/Element/staging" class="dashAnchor"></a>
+                    <a class="token" href="#/s:14TestimonialKit14AppEnvironmentO7stagingyA2CmF">staging</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>The staging environment, typically used for pre-production testing and QA.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">case</span> <span class="n">staging</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:14TestimonialKit14AppEnvironmentO11developmentyA2CmF"></a>
+                    <a name="//apple_ref/swift/Element/development" class="dashAnchor"></a>
+                    <a class="token" href="#/s:14TestimonialKit14AppEnvironmentO11developmentyA2CmF">development</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>The development environment, used for local development and testing.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">case</span> <span class="n">development</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </section>
+        <section id="footer">
+          <p>&copy; 2025 <a class="link" href="https://testimonialkit.dev" target="_blank" rel="external noopener">Eduard Albu</a>. All rights reserved. (Last updated: 2025-08-14)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.15.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</html>
