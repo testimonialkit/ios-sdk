@@ -37,7 +37,7 @@ dependencies: [
 Add the following to your Podfile:
 
 ```ruby
-pod 'TestimonialKit'
+pod 'TestimonialKit' // not implemented yet
 
 ```
 
