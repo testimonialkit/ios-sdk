@@ -17,8 +17,6 @@ TestimonialKit is an intelligent SDK that helps you collect feedback and increas
 
 <div style="display: flex; flex-wrap: wrap; gap: 12px;">
   <img src="demo.gif" alt="Demo app animation" width="300"/>
-</div>
-<div style="display: flex; flex-wrap: wrap; gap: 12px;">
   <img src="negative_demo.gif" alt="Demo app animation" width="300"/>
 </div>
 
