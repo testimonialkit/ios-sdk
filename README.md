@@ -9,6 +9,15 @@
 
 TestimonialKit is an intelligent SDK that helps you collect feedback and increase your App Store ratings by identifying your most satisfied users and prompting them at the right moment.
 
+[![SwiftPM](https://img.shields.io/badge/SwiftPM-Compatible-blue)]()
+[![iOS](https://img.shields.io/badge/iOS-14.0%2B-lightgrey)]()
+[![Version](https://img.shields.io/github/v/tag/Charlyk/swift-theme-kit?label=Version)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow)]()
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px;">
+  <img src="demo.gif" alt="Demo app animation" width="300"/>
+</div>
+
 ## Features
 
 - Smart prompting based on user satisfaction levels
