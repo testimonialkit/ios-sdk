@@ -12,7 +12,7 @@ TestimonialKit is an intelligent SDK that helps you collect feedback and increas
 [![SwiftPM](https://img.shields.io/badge/SwiftPM-Compatible-blue)]()
 [![iOS](https://img.shields.io/badge/iOS-16.0%2B-lightgrey)]()
 [![macOS](https://img.shields.io/badge/macOS-13.0%2B-lightgrey)]()
-[![Version](https://img.shields.io/github/v/tag/Charlyk/swift-theme-kit?label=Version)]()
+[![Version](https://img.shields.io/github/v/tag/testimonialkit/ios-sdk?label=Version)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow)]()
 
 <div style="display: flex; flex-wrap: wrap; gap: 12px;">
