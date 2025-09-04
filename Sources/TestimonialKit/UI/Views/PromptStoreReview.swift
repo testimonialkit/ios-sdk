@@ -1,5 +1,4 @@
 import SwiftUI
-import ConfettiSwiftUI
 
 /// Store review step view in the feedback prompt flow.
 ///
@@ -21,33 +20,12 @@ struct PromptStoreReview: View {
   /// Main body of the store review view.
   /// Shows the header, success icon with confetti, and submit/cancel buttons.
   var body: some View {
-    VStack(spacing: 43) {
+    VStack(spacing: 40) {
       /// Header displaying the store review title and message.
       PromptHeader(
         title: strings.title,
         subtitle: strings.message
       )
-
-      /// Success checkmark icon styled in green, with a confetti cannon effect triggered on appear.
-      /// - `num`: The number of confetti particles (250).
-      /// - `openingAngle` and `closingAngle`: Define the emission spread.
-      /// - `radius`: The radius within which confetti spawns.
-      Image(systemName: "checkmark.circle.fill")
-        .resizable()
-        .renderingMode(.template)
-        .foregroundColor(.green)
-        .frame(width: 48, height: 48)
-        .confettiCannon(
-          trigger: $showConfetti,
-          num: 250,
-          openingAngle: Angle(degrees: 0),
-          closingAngle: Angle(degrees: 360),
-          radius: 150
-        )
-        .zIndex(2)
-        .onAppear {
-          showConfetti = true
-        }
 
       /// Container for the submit and cancel buttons.
       VStack(spacing: 16) {

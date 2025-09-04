@@ -8,7 +8,7 @@ struct ios_demoApp: App {
             ContentView()
             .onAppear {
               TestimonialKit.setup(
-                withKey: "tk_pub_b8e586d674610dabf398c7f7af24ba18",
+                withKey: "tk_pub_68775e735a1e354c787b5d932036d877",
                 logLevel: .verbose
               )
             }

@@ -11,9 +11,11 @@ enum PromptEventType: String, Codable, Sendable {
   /// The prompt was dismissed by the user without providing a rating.
   case promptDismissed = "prompt_dismissed"
   /// The prompt was dismissed by the user after they submitted a rating.
-  case promptDismissedAfterRating = "prompt_dismissed_after_rating"
+  case promptDismissedWithResult = "prompt_dismissed_with_result"
   /// The user was redirected to the app store after interacting with the prompt.
   case redirectedToStore = "redirected_to_store"
   /// The store review step was skipped by the user.
   case storeReviewSkipped = "store_review_skipped"
+  /// User did submit a feedback with a comment
+  case feedbackSubmitted = "feedback_submitted"
 }

@@ -9,6 +9,7 @@ import SwiftThemeKit
 struct PromptView: View {
   /// Prompt configuration containing localized strings, tint colors, and component styles.
   private let config: PromptConfig
+  private let type: PromptType
   /// Theme instance for light mode, derived from `config` values.
   private let lightTheme: Theme
   /// Theme instance for dark mode, derived from `config` values.
@@ -21,8 +22,9 @@ struct PromptView: View {
   /// Creates a `PromptView` with a given configuration.
   /// - Parameter config: Prompt appearance and text configuration.
   /// Builds separate light and dark `Theme` instances from the provided config.
-  init(config: PromptConfig) {
+  init(config: PromptConfig, type: PromptType) {
     self.config = config
+    self.type = type
     self.lightTheme = .defaultLight.copy(
       colors: .defaultLight.copy(
         primary: config.tintColorDark
@@ -65,8 +67,6 @@ struct PromptView: View {
     ) {
       VStack {
         switch viewModel.state {
-        case .rating:
-          ratingView
         case .comment:
           commentView
         case .storeReview:
@@ -83,24 +83,9 @@ struct PromptView: View {
         viewModel.handleOnDisappear()
       }
     }
-  }
-
-  /// Rating step view where the user can provide a star rating.
-  /// Binds `viewModel.rating` and wires submit/dismiss actions.
-  @ViewBuilder
-  private var ratingView: some View {
-    PromptRatingView(
-      rating: $viewModel.rating,
-      strings: config.ratingStrings,
-      isLoading: viewModel.isLoading,
-      onSubmit: {
-        viewModel.handleSubmit()
-      },
-      onDissmiss: {
-        viewModel.handleDismiss()
-      }
-    )
-    .transition(.opacity)
+    .onAppear {
+      self.viewModel.state = type == .feedback ? .comment(data: nil) : .storeReview(redirected: false, data: nil)
+    }
   }
 
   /// Comment step view where the user can leave textual feedback.

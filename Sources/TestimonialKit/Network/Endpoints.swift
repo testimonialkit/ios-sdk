@@ -27,6 +27,8 @@ enum Headers: String {
   case bundleId = "x-bundle-id"
   /// Header key for the app platform (e.g., iOS, macOS).
   case platform = "x-app-platform"
+  /// Header key for the app session identifier
+  case sessionId = "x-session-id"
   /// Header key for specifying the content type of the request body.
   case contentType = "Content-Type"
 }

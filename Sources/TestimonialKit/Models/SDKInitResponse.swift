@@ -8,8 +8,6 @@ import Foundation
 struct SDKInitResponse: Decodable, Sendable {
   /// The unique identifier for the current user, assigned by the backend.
   let userId: String
-  /// Indicates whether the SDK should request a comment from the user after a positive rating.
-  let requestCommentOnPositiveRating: Bool
   /// The current application environment, such as production, staging, or development.
   let environment: AppEnvironment
   /// Indicates whether the user currently has an active subscription.
