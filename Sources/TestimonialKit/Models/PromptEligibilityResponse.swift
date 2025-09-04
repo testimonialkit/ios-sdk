@@ -11,8 +11,10 @@ struct PromptEligibilityResponse: Decodable, Sendable {
   let eligible: Bool
   /// Optional reason explaining why the user is not eligible for the prompt, if applicable.
   let reason: String?
-  /// The unique identifier associated with this eligibility check event.
-  let eventId: String
+  /// The type of the prompt that user is eligible for, if `nil` the user is not eligible for any prompt
+  let type: PromptType?
   /// Optional status string providing additional context or state for the eligibility result.
   let status: String?
+  /// ID of the registered eligibility event
+  let eventId: String
 }

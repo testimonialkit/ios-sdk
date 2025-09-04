@@ -8,8 +8,6 @@ public struct PromptConfig: @unchecked Sendable {
   /// A default `PromptConfig` instance with stock strings, styles, and colors.
   public static let defaultConfig: PromptConfig = .init()
 
-  /// Localized strings shown during the rating step.
-  var ratingStrings: RatingStrings
   /// Localized strings shown during the comment step.
   var commentStrings: CommentStrings
   /// Localized strings for the App Store review prompt step.
@@ -36,7 +34,6 @@ public struct PromptConfig: @unchecked Sendable {
   ///   - tintColor: Accent color for light mode.
   ///   - tintColorDark: Accent color for dark mode.
   public init(
-    ratingStrings: RatingStrings = .init(),
     commentStrings: CommentStrings = .init(),
     storeReviewStrings: StoreReviewStrings = .init(),
     thankYouStrings: ThankYouStrings = .init(),
@@ -45,7 +42,6 @@ public struct PromptConfig: @unchecked Sendable {
     tintColor: Color = .blue,
     tintColorDark: Color = .blue
   ) {
-    self.ratingStrings = ratingStrings
     self.commentStrings = commentStrings
     self.storeReviewStrings = storeReviewStrings
     self.thankYouStrings = thankYouStrings
@@ -59,7 +55,6 @@ public struct PromptConfig: @unchecked Sendable {
   /// - Parameters: Same as the stored properties to override.
   /// - Returns: A new `PromptConfig` with updated fields.
   public func copy(
-    ratingStrings: RatingStrings? = nil,
     commentStrings: CommentStrings? = nil,
     submitButton: PromptConfig.Button? = nil,
     commentField: PromptConfig.TextField? = nil,
@@ -67,7 +62,6 @@ public struct PromptConfig: @unchecked Sendable {
     tintColorDark: Color? = nil
   ) -> PromptConfig {
     return PromptConfig(
-      ratingStrings: ratingStrings ?? self.ratingStrings,
       commentStrings: commentStrings ?? self.commentStrings,
       submitButton: submitButton ?? self.submitButton,
       commentField: commentField ?? self.commentField,
@@ -120,45 +114,6 @@ public struct PromptConfig: @unchecked Sendable {
     }
   }
 
-  /// Localized strings for the rating step of the prompt.
-  public struct RatingStrings {
-    /// Main title for the rating step.
-    var title: String
-    /// Subtitle text displayed below the title.
-    var subtitle: String
-    /// Label above the star rating control.
-    var ratingLabel: String
-    /// Accessibility labels for each star rating (must contain exactly 5 entries).
-    var starLabels: [String]
-    /// Title for the submit button in the rating step.
-    var submitButtonTitle: String
-    /// Title for the cancel button in the rating step.
-    var cancelButtonTitle: String
-
-    /// Creates `RatingStrings` with optional custom values.
-    /// - Parameters: Titles, subtitles, labels, and button titles.
-    /// - Note: `starLabels` must contain exactly 5 elements.
-    public init(
-      title: String = "Rate this app",
-      subtitle: String = "Your feedback is precious to us.",
-      ratingLabel: String = "Tap a star to rate",
-      starLabels: [String] = ["I hate it", "I don't like it", "It's okay", "I like it", "I love it"],
-      submitButtonTitle: String = "Submit",
-      cancelButtonTitle: String = "Maybe later"
-    ) {
-      if starLabels.count != 5 {
-        fatalError("Star labels array must contain exactly 5 strings.")
-      }
-
-      self.title = title
-      self.subtitle = subtitle
-      self.ratingLabel = ratingLabel
-      self.starLabels = starLabels
-      self.submitButtonTitle = submitButtonTitle
-      self.cancelButtonTitle = cancelButtonTitle
-    }
-  }
-
   /// Localized strings for the comment step of the prompt.
   public struct CommentStrings {
     /// Main title for the comment step.
@@ -203,8 +158,8 @@ public struct PromptConfig: @unchecked Sendable {
     /// Creates `StoreReviewStrings` with optional custom values.
     /// - Parameters: Titles, messages, and button titles.
     public init(
-      title: String = "Thank you!",
-      message: String = "What about reviewing us in the App Store?",
+      title: String = "Do you enjoy our app?",
+      message: String = "We would love to hear your thoughts!",
       submitButtonTitle: String = "Ok, sure",
       cancelButtonTitle: String = "No thanks"
     ) {

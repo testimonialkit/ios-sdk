@@ -40,19 +40,14 @@ protocol PromptManagerProtocol: AnyObject, Sendable {
   /// Logs that the prompt was dismissed without a recorded rating/comment.
   func logPromptDismissed() async
   /// Logs that the prompt was dismissed after a rating/comment had been recorded.
-  func logPromptDismissedAfterRating() async
+  func logPromptDismissedWithResult() async
   /// Logs that the user was redirected to the App Store from the prompt.
   func logRedirectedToStore() async
   /// Logs that the user chose to skip the App Store review flow.
   func logStoreReviewSkipped() async
-  /// Logs the user's rating, and optionally a free-text comment.
-  /// - Parameters:
-  ///   - rating: The star rating value (typically 1–5).
-  ///   - comment: Optional free-form text accompanying the rating.
-  func logUserFeedback(rating: Int, comment: String?) async
-  /// Logs (or updates) a stand-alone comment for the most recent feedback event.
-  /// - Parameter comment: Optional free-form text.
-  func logUserComment(comment: String?) async
+  /// Logs the user's feedback comment (no rating anymore).
+  /// - Parameter comment: Free-form text feedback from the user.
+  func logUserFeedback(comment: String?) async
   /// Asynchronously checks eligibility and, if allowed, proceeds to show the prompt.
   /// - Parameters:
   ///   - metadata: Arbitrary key–value pairs attached to all logged events in this session.
@@ -70,7 +65,7 @@ protocol PromptManagerProtocol: AnyObject, Sendable {
   /// - Parameter state: The dismissal outcome to evaluate.
   func handlePromptDismissAction(on state: PromptViewState) async
   /// Presents the prompt UI on the top-most view controller (main thread only).
-  func showPrompt() async
+  func showPrompt(of type: PromptType) async
 }
 
 /// Actor-backed implementation of `PromptManagerProtocol`.
@@ -92,7 +87,7 @@ actor PromptManager: PromptManagerProtocol {
   private var currentEligibility: PromptEligibilityResponse?
   /// The most recent prompt event returned by the backend.
   private var currentPromptEvent: PromptEventLogResponse?
-  /// The most recent feedback event (rating/comment) returned by the backend.
+  /// The most recent feedback event (comment) returned by the backend.
   private var currentFeedbackResponse: FeedbackLogResponse?
   /// Indicates that a feedback event has been enqueued/acknowledged during this session.
   private var feedbackEventRegistered: Bool = false
@@ -200,16 +195,16 @@ actor PromptManager: PromptManagerProtocol {
     case .checkEligibility(let result):
       switch result {
       case .success(let response):
-        if response.eligible {
+        if response.eligible, let promptType = response.type {
           currentEligibility = response
           currentFeedbackResponse = nil
           promptState = .eligible
 
           // Need to run on main thread when showing UI
           Task { @MainActor in
-            await self.showPrompt()
+            await self.showPrompt(of: promptType)
           }
-          Logger.shared.debug("User eligible for prompt")
+          Logger.shared.debug("User eligible for \(promptType.rawValue) prompt")
         } else {
           promptState = .iddle
           Logger.shared.debug("User not eligible for prompt: \(response.reason ?? "Unknown reason")")
@@ -227,7 +222,7 @@ actor PromptManager: PromptManagerProtocol {
       switch result {
       case .success(let response):
         currentPromptEvent = response
-        if response.status == .promptDismissed || response.status == .promptDismissedAfterRating {
+        if response.status == .promptDismissed || response.status == .promptDismissedWithResult {
           currentEligibility = nil
           currentPromptEvent = nil
           promptMetadata = nil
@@ -246,7 +241,7 @@ actor PromptManager: PromptManagerProtocol {
         currentFeedbackResponse = response
         // Publishing needs to be on the main thread
         Task { @MainActor in
-          self.feedbackEventPublisher.send(.rating(data: response))
+          self.feedbackEventPublisher.send(.comment(data: response))
         }
         Logger.shared.debug("Feedback event logged")
       case .failure(let error):
@@ -299,7 +294,7 @@ actor PromptManager: PromptManagerProtocol {
     guard let currentPromptEvent else { return }
 
     if currentFeedbackResponse != nil || feedbackEventRegistered {
-      await logPromptDismissedAfterRating()
+      await logPromptDismissedWithResult()
       return
     }
 
@@ -315,18 +310,18 @@ actor PromptManager: PromptManagerProtocol {
     await requestQueue.enqueue(req)
   }
 
-  /// Enqueues a `promptDismissedAfterRating` event tying the dismissal to the feedback event.
-  func logPromptDismissedAfterRating() async {
+  /// Enqueues a `promptDismissedWithResult` event tying the dismissal to the feedback event.
+  func logPromptDismissedWithResult() async {
     guard let currentFeedbackResponse, let currentPromptEvent, feedbackEventRegistered else { return }
 
     let req = apiClient.sendPromptEvent(
-      type: .promptDismissedAfterRating,
+      type: .promptDismissedWithResult,
       previousEventId: currentPromptEvent.eventId,
       feedbackEventId: currentFeedbackResponse.eventId,
       metadata: promptMetadata
     )
 
-    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.promptDismissedAfterRating)"
+    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.promptDismissedWithResult)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
 
@@ -365,17 +360,13 @@ actor PromptManager: PromptManagerProtocol {
     await requestQueue.enqueue(req)
   }
 
-  /// Enqueues a feedback event for the given rating/comment pair and marks the local session
-  /// as having a registered feedback event.
-  /// - Parameters:
-  ///   - rating: The star rating value (typically 1–5).
-  ///   - comment: Optional free-form text accompanying the rating.
-  func logUserFeedback(rating: Int, comment: String? = nil) async {
+  /// Enqueues a feedback event for the given comment (no rating anymore).
+  /// - Parameter comment: Optional free-form text feedback from the user.
+  func logUserFeedback(comment: String? = nil) async {
     guard let currentPromptEvent else { return }
 
     let req = apiClient.sendFeedbackEvent(
       promptEventId: currentPromptEvent.eventId,
-      rating: rating,
       comment: comment,
       metadata: promptMetadata
     )
@@ -385,21 +376,6 @@ actor PromptManager: PromptManagerProtocol {
     await requestQueue.enqueue(req)
 
     feedbackEventRegistered = true
-  }
-
-  /// Enqueues a separate comment event tied to the most recent feedback event.
-  /// - Parameter comment: Optional free-form text.
-  func logUserComment(comment: String?) async {
-    guard let currentFeedbackResponse else { return }
-
-    let req = apiClient.sendFeedbackComment(
-      comment: comment,
-      feedbackEventId: currentFeedbackResponse.eventId
-    )
-
-    let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(APIEventType.sendFeedbackComment)"
-    Logger.shared.verbose(logMessage)
-    await requestQueue.enqueue(req)
   }
 
   /// Entry point for the prompt flow. Checks eligibility via the API, stores metadata and
@@ -452,7 +428,7 @@ actor PromptManager: PromptManagerProtocol {
 
   /// Presents the prompt modally from the top-most view controller on the current platform.
   /// On iOS it uses a sheet; on macOS it presents as a sheet from the top-most NSViewController.
-  func showPrompt() async {
+  func showPrompt(of type: PromptType) async {
     guard promptState == .eligible else {
       Logger.shared.warning("Prompt state is not eligible")
       return
@@ -472,7 +448,7 @@ actor PromptManager: PromptManagerProtocol {
 
     promptState = .showing
     await MainActor.run { [currentPromptConfig] in
-      let swiftUIView = PromptView(config: currentPromptConfig)
+      let swiftUIView = PromptView(config: currentPromptConfig, type: type)
       let hostingVC = PromptViewController(rootView: swiftUIView)
 
       #if canImport(UIKit)
@@ -519,22 +495,22 @@ actor PromptManager: PromptManagerProtocol {
   private func triggerCompletionHandlers(on state: PromptViewState) async {
     // Execute completion handlers on main thread
     switch state {
-    case .rating, .comment, .thankYou:
+    case .comment, .thankYou:
+      // For feedback prompts
       if let currentFeedbackResponse {
-        if currentFeedbackResponse.hasComment {
-          completionHandlers.forEach { $1(.completed) }
-        } else {
-          completionHandlers.forEach { $1(.completedWithoutComment) }
-        }
+        completionHandlers.forEach { $1(.completed) }
       } else {
         completionHandlers.forEach { $1(.cancelled) }
       }
     case .storeReview(let redirected, _):
+      // For review prompts - just redirect to store and close
       if redirected {
         completionHandlers.forEach { $1(.redirectedToStore) }
       } else {
         completionHandlers.forEach { $1(.storeReviewSkipped) }
       }
+    default:
+      completionHandlers.forEach { $1(.cancelled) }
     }
 
     completionHandlers.removeAll()
