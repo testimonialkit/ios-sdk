@@ -11,4 +11,12 @@ struct PromptEventLogResponse: Decodable, Sendable {
   let eventId: String
   /// The type or status of the prompt event as defined by `PromptEventType`.
   let status: PromptEventType
+  /// The App Store identifier of the app
+  let appstoreId: String?
+  /// Indicates whether the app is released to appstore
+  let isAppReleased: Bool
+  /// The bundle identifier of the app
+  let bundleId: String
+  /// The type of the prompt that user is eligible for, if `nil` the user is not eligible for any prompt
+  let type: PromptType?
 }
