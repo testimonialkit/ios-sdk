@@ -11,11 +11,9 @@ import AppKit
 /// Represents the different UI states in the feedback prompt flow.
 /// Used by `PromptViewModel` to drive the view based on backend events and user actions.
 enum PromptViewState: Equatable, Sendable {
-  /// The initial state where the user can provide a star rating.
-  case rating
   /// State where the user is prompted to leave a text comment, optionally with a rating.
   /// - Parameter data: The feedback log data from the backend.
-  case comment(data: FeedbackLogResponse)
+  case comment(data: FeedbackLogResponse?)
   /// State showing a thank-you message after feedback submission.
   /// - Parameter data: Optional feedback data if available.
   case thankYou(data: FeedbackLogResponse?)
@@ -23,7 +21,7 @@ enum PromptViewState: Equatable, Sendable {
   /// - Parameters:
   ///   - redirected: Indicates whether the user was redirected successfully.
   ///   - data: Feedback log data from the backend.
-  case storeReview(redirected: Bool, data: FeedbackLogResponse)
+  case storeReview(redirected: Bool, data: FeedbackLogResponse?)
 }
 
 /// View model driving the state and actions of the feedback prompt UI.
@@ -44,7 +42,7 @@ class PromptViewModel: ObservableObject {
   /// The optional comment text provided by the user.
   @Published var comment: String = ""
   /// Current UI state of the prompt.
-  @Published var state: PromptViewState = .rating
+  @Published var state: PromptViewState = .storeReview(redirected: false, data: nil)
   /// Indicates whether a network request or action is in progress.
   @Published var isLoading = false
 
@@ -74,25 +72,11 @@ class PromptViewModel: ObservableObject {
         /// Handle a rating event: determine next state based on positivity, comment request, and App Store redirect settings.
         switch event {
         case .rating(let data):
-          if !data.isPositiveRating || data.requestComment {
-            setStateDeferred(.comment(data: data))
-          } else if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
-            self.redirectToAppStoreReview(data: data)
-          } else if data.isPositiveRating && data.hasAppStoreId {
-            setStateDeferred(.storeReview(redirected: false, data: data))
-          } else {
-            setStateDeferred(.thankYou(data: data))
-          }
+          setStateDeferred(.thankYou(data: nil))
 
         /// Handle a comment event: determine next state similarly, possibly showing store review or thank-you.
         case .comment(let data):
-          if data.isPositiveRating && data.redirectAutomatically && data.hasAppStoreId {
-            self.redirectToAppStoreReview(data: data)
-          } else if data.isPositiveRating && data.hasAppStoreId {
-            setStateDeferred(.storeReview(redirected: false, data: data))
-          } else {
-            setStateDeferred(.thankYou(data: data))
-          }
+          setStateDeferred(.thankYou(data: data))
 
         /// Handle an error event: go directly to thank-you with no feedback data.
         case .error:
@@ -107,8 +91,6 @@ class PromptViewModel: ObservableObject {
   /// Handles submission based on the current prompt state.
   func handleSubmit() {
     switch state {
-    case .rating:
-      handleSubmitRating()
     case .comment:
       handleSubmitComment()
     case .storeReview(_, let data):
@@ -118,34 +100,20 @@ class PromptViewModel: ObservableObject {
     }
   }
 
-  /// Sends the selected rating to the prompt manager.
-  func handleSubmitRating() {
-    if rating == 0 { return }
-    isLoading = true
-    Task { [weak self] in
-      guard let self else { return }
-      await promptManager.logUserFeedback(rating: rating, comment: comment.isEmpty ? nil : comment)
-    }
-  }
-
   /// Sends the entered comment to the prompt manager.
   func handleSubmitComment() {
     isLoading = true
     dismissKeyboard()
     Task { [weak self] in
       guard let self else { return }
-      await promptManager.logUserComment(comment: comment.isEmpty ? nil : comment)
+      await promptManager.logUserFeedback(comment: comment.isEmpty ? nil : comment)
     }
   }
 
   /// Handles dismissal logic depending on the current state.
   func handleDismiss() {
     if case .comment(let data) = state {
-      if data.isPositiveRating && data.hasAppStoreId {
-        setStateDeferred(.storeReview(redirected: false, data: data))
-      } else {
-        setStateDeferred(.thankYou(data: data))
-      }
+      setStateDeferred(.thankYou(data: data))
     } else {
       requestDismiss(as: state)
     }
@@ -160,10 +128,14 @@ class PromptViewModel: ObservableObject {
   }
 
   /// Attempts to open the App Store review page for the app using the provided feedback data.
-  func redirectToAppStoreReview(data: FeedbackLogResponse) {
-    let appStoreID = data.appStoreId ?? ""
+  func redirectToAppStoreReview(data: FeedbackLogResponse?) {
+    guard let data, data.isAppReleased else {
+      Logger.shared.debug("App is not released to the store so cannot redirect to App Store review")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
+      return
+    }
 
-    if appStoreID.isEmpty {
+    guard let appStoreID = data.appstoreId else {
       Logger.shared.debug("Invalid app identifier")
       requestDismiss(as: .storeReview(redirected: false, data: data))
       return

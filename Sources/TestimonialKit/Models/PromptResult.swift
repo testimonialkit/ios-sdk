@@ -12,10 +12,6 @@ public enum PromptResult: Sendable {
   /// The user submitted both a rating and a comment (if applicable).
   case completed
 
-  /// The user submitted a rating without a comment.
-  /// This may occur if a comment was not requested or was left empty.
-  case completedWithoutComment
-
   /// The user was redirected to the app store after submitting a rating, with or without a comment.
   case redirectedToStore
 

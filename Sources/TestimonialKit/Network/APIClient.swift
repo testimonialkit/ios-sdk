@@ -3,7 +3,7 @@ import Foundation
 /// Defines the interface for an API client that communicates with the TestimonialKit backend.
 ///
 /// Provides methods for initializing the SDK, checking prompt eligibility, sending app events,
-/// prompt events, feedback events, feedback comments, and executing queued requests.
+/// prompt events, feedback events, and executing queued requests.
 protocol APIClientProtocol: AnyObject, Sendable {
   /// Creates a queued request to initialize the SDK with required configuration details.
   func initSdk() -> QueuedRequest
@@ -37,24 +37,16 @@ protocol APIClientProtocol: AnyObject, Sendable {
     metadata: [String: String]?
   ) -> QueuedRequest
 
-  /// Creates a queued request to submit feedback data.
+  /// Creates a queued request to submit feedback data with comment.
   /// - Parameters:
   ///   - promptEventId: The ID of the related prompt event.
-  ///   - rating: Numerical rating given by the user.
-  ///   - comment: Optional text comment from the user.
+  ///   - comment: Text comment from the user.
   ///   - metadata: Optional key-value metadata.
   func sendFeedbackEvent(
     promptEventId: String,
-    rating: Int,
     comment: String?,
     metadata: [String: String]?
   ) -> QueuedRequest
-
-  /// Creates a queued request to submit or update a feedback comment.
-  /// - Parameters:
-  ///   - comment: The comment text.
-  ///   - feedbackEventId: The ID of the feedback event to update.
-  func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest
 
   /// Executes a queued request against the backend.
   /// - Parameter queuedRequest: The request to execute.
@@ -96,6 +88,7 @@ final class APIClient: APIClientProtocol {
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
         Headers.platform.rawValue: config.platform,
+        Headers.sessionId.rawValue: config.sessionId.uuidString,
         Headers.contentType.rawValue: "application/json"
       ],
       body: try? JSONSerialization.data(withJSONObject: body, options: [])
@@ -123,6 +116,7 @@ final class APIClient: APIClientProtocol {
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
         Headers.platform.rawValue: config.platform,
+        Headers.sessionId.rawValue: config.sessionId.uuidString,
         Headers.contentType.rawValue: "application/json"
       ],
       body: try? JSONSerialization.data(withJSONObject: body, options: [])
@@ -162,6 +156,7 @@ final class APIClient: APIClientProtocol {
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
         Headers.platform.rawValue: config.platform,
+        Headers.sessionId.rawValue: config.sessionId.uuidString,
         Headers.contentType.rawValue: "application/json"
       ],
       body: try? JSONSerialization.data(withJSONObject: body, options: [])
@@ -204,6 +199,7 @@ final class APIClient: APIClientProtocol {
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
         Headers.platform.rawValue: config.platform,
+        Headers.sessionId.rawValue: config.sessionId.uuidString,
         Headers.contentType.rawValue: "application/json"
       ],
       body: try? JSONSerialization.data(withJSONObject: body, options: []),
@@ -214,26 +210,24 @@ final class APIClient: APIClientProtocol {
   }
 
   /// Concrete implementation of `sendFeedbackEvent(...)`.
-  /// Creates a queued request to submit feedback data.
+  /// Creates a queued request to submit feedback data with comment.
   /// - Parameters:
   ///   - promptEventId: The ID of the related prompt event.
-  ///   - rating: Numerical rating given by the user.
   ///   - comment: Optional text comment from the user.
   ///   - metadata: Optional key-value metadata.
   func sendFeedbackEvent(
     promptEventId: String,
-    rating: Int,
     comment: String? = nil,
     metadata: [String: String]? = nil
   ) -> QueuedRequest {
     var body: [String: Any] = [
       "userId": config.userId,
-      "rating": rating,
       "promptEventId": promptEventId,
       "appVersion": config.appVersion
     ]
 
-    if let comment {
+    // Only include comment if it's not nil or empty
+    if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       body["comment"] = comment
     }
 
@@ -249,35 +243,7 @@ final class APIClient: APIClientProtocol {
         Headers.apiKey.rawValue: config.apiKey,
         Headers.bundleId.rawValue: config.bundleId,
         Headers.platform.rawValue: config.platform,
-        Headers.contentType.rawValue: "application/json"
-      ],
-      body: try? JSONSerialization.data(withJSONObject: body, options: [])
-    )
-  }
-
-  /// Concrete implementation of `sendFeedbackComment(comment:feedbackEventId:)`.
-  /// Creates a queued request to submit or update a feedback comment.
-  /// - Parameters:
-  ///   - comment: The comment text.
-  ///   - feedbackEventId: The ID of the feedback event to update.
-  func sendFeedbackComment(comment: String?, feedbackEventId: String) -> QueuedRequest {
-    var body: [String: Any] = [
-      "feedbackEventId": feedbackEventId,
-      "userId": config.userId
-    ]
-
-    if let comment {
-      body["comment"] = comment
-    }
-
-    return QueuedRequest(
-      eventType: .sendFeedbackComment,
-      method: "PUT",
-      path: Endpoints.feedback,
-      headers: [
-        Headers.apiKey.rawValue: config.apiKey,
-        Headers.bundleId.rawValue: config.bundleId,
-        Headers.platform.rawValue: config.platform,
+        Headers.sessionId.rawValue: config.sessionId.uuidString,
         Headers.contentType.rawValue: "application/json"
       ],
       body: try? JSONSerialization.data(withJSONObject: body, options: [])

@@ -22,6 +22,8 @@ final class TestimonialKitConfig: @unchecked Sendable {
   let sdkVersion: String = "1.0.0"
   /// Indicates whether the current user has an active subscription.
   var hasActiveSubscription: Bool = false
+  /// The identifier of the current app session
+  let sessionId: UUID = UUID()
 
   /// Creates a new `TestimonialKitConfig` instance.
   /// - Parameters:

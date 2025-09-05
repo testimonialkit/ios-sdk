@@ -78,7 +78,6 @@ final class QueueResponseHandler {
       case .success(let success):
         let config = resolve(\.configuration)
         Storage.internalUserId = success.userId
-        Storage.requestCommentOnPositiveRating = success.requestCommentOnPositiveRating
         config.userId = success.userId
         config.hasActiveSubscription = success.hasActiveSubscription
         Logger.shared.info("★ Initialized successfully ★")
