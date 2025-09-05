@@ -13,13 +13,15 @@ struct PromptHeader: View {
 
   /// The view body containing the title and optional subtitle stacked vertically.
   var body: some View {
-    VStack {
+    VStack(spacing: 8) {
       Text(title)
         .font(TextStyleToken.headlineLarge)
+        .multilineTextAlignment(.center)
 
       if let subtitle {
         Text(subtitle)
           .font(TextStyleToken.bodyMedium)
+          .multilineTextAlignment(.center)
       }
     }
   }

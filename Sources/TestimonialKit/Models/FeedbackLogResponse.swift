@@ -9,4 +9,10 @@ struct FeedbackLogResponse: Decodable, Equatable, Sendable {
   let message: String
   /// The unique identifier assigned to the feedback event by the backend.
   let eventId: String
+  /// The unique identifier of the app in the AppStore
+  let appstoreId: String?
+  /// The app bundle ID
+  let bundleId: String
+  /// Indicates whether the app is released to the store
+  let isAppReleased: Bool
 }

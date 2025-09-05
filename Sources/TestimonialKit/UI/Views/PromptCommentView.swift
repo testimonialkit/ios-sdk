@@ -24,7 +24,7 @@ struct PromptCommentView: View {
   /// Shows the header, multiline text input (TextField on iOS 16+, TextEditor fallback on earlier versions),
   /// and the submit/cancel buttons.
   var body: some View {
-    VStack(spacing: 32) {
+    VStack(spacing: 30) {
       /// Header displaying the comment title and subtitle.
       PromptHeader(
         title: strings.title,

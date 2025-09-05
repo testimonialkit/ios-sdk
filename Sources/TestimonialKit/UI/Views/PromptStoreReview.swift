@@ -20,7 +20,7 @@ struct PromptStoreReview: View {
   /// Main body of the store review view.
   /// Shows the header, success icon with confetti, and submit/cancel buttons.
   var body: some View {
-    VStack(spacing: 40) {
+    VStack(spacing: 30) {
       /// Header displaying the store review title and message.
       PromptHeader(
         title: strings.title,
@@ -57,6 +57,6 @@ struct PromptStoreReview: View {
       }
       .zIndex(1)
     }
-    .padding()
+    .padding(.horizontal)
   }
 }

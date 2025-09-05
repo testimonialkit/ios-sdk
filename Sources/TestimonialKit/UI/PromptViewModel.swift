@@ -129,54 +129,58 @@ class PromptViewModel: ObservableObject {
 
   /// Attempts to open the App Store review page for the app using the provided feedback data.
   func redirectToAppStoreReview(data: FeedbackLogResponse?) {
-//    let appStoreID = data.appStoreId ?? ""
-//
-//    if appStoreID.isEmpty {
-//      Logger.shared.debug("Invalid app identifier")
-//      requestDismiss(as: .storeReview(redirected: false, data: data))
-//      return
-//    }
-//
-//    #if canImport(UIKit)
-//    // iOS / iPadOS: use itms-apps URL scheme to open the App Store review page
-//    guard let url = URL(string: "itms-apps://itunes.apple.com/app/\(appStoreID)?action=write-review") else {
-//      Logger.shared.debug("Invalid store URL")
-//      requestDismiss(as: .storeReview(redirected: false, data: data))
-//      return
-//    }
-//
-//    if UIApplication.shared.canOpenURL(url) {
-//      UIApplication.shared.open(url, options: [:]) { [weak self] success in
-//        guard let self else { return }
-//        if success {
-//          self.requestDismiss(as: .storeReview(redirected: true, data: data))
-//        } else {
-//          Logger.shared.debug("Failed to open AppStore")
-//          self.requestDismiss(as: .storeReview(redirected: false, data: data))
-//        }
-//      }
-//    } else {
-//      Logger.shared.debug("Can not open URL")
-//      requestDismiss(as: .storeReview(redirected: false, data: data))
-//    }
-//    #elseif canImport(AppKit)
-//    // macOS: prefer macappstore://, fall back to https://apps.apple.com
-//    let primary = URL(string: "macappstore://itunes.apple.com/app/id\(appStoreID)?mt=12&action=write-review")
-//    let fallback = URL(string: "https://apps.apple.com/app/id\(appStoreID)?action=write-review")
-//
-//    if let url = primary, NSWorkspace.shared.open(url) {
-//      requestDismiss(as: .storeReview(redirected: true, data: data))
-//    } else if let url = fallback, NSWorkspace.shared.open(url) {
-//      requestDismiss(as: .storeReview(redirected: true, data: data))
-//    } else {
-//      Logger.shared.debug("Failed to open App Store on macOS")
-//      requestDismiss(as: .storeReview(redirected: false, data: data))
-//    }
-//    #else
-//    // Unsupported platform
-//    Logger.shared.debug("App Store redirect unsupported on this platform")
-//    requestDismiss(as: .storeReview(redirected: false, data: data))
-//    #endif
+    guard let data, data.isAppReleased else {
+      Logger.shared.debug("App is not released to the store so cannot redirect to App Store review")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
+      return
+    }
+
+    guard let appStoreID = data.appstoreId else {
+      Logger.shared.debug("Invalid app identifier")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
+      return
+    }
+
+    #if canImport(UIKit)
+    // iOS / iPadOS: use itms-apps URL scheme to open the App Store review page
+    guard let url = URL(string: "itms-apps://itunes.apple.com/app/\(appStoreID)?action=write-review") else {
+      Logger.shared.debug("Invalid store URL")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
+      return
+    }
+
+    if UIApplication.shared.canOpenURL(url) {
+      UIApplication.shared.open(url, options: [:]) { [weak self] success in
+        guard let self else { return }
+        if success {
+          self.requestDismiss(as: .storeReview(redirected: true, data: data))
+        } else {
+          Logger.shared.debug("Failed to open AppStore")
+          self.requestDismiss(as: .storeReview(redirected: false, data: data))
+        }
+      }
+    } else {
+      Logger.shared.debug("Can not open URL")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
+    }
+    #elseif canImport(AppKit)
+    // macOS: prefer macappstore://, fall back to https://apps.apple.com
+    let primary = URL(string: "macappstore://itunes.apple.com/app/id\(appStoreID)?mt=12&action=write-review")
+    let fallback = URL(string: "https://apps.apple.com/app/id\(appStoreID)?action=write-review")
+
+    if let url = primary, NSWorkspace.shared.open(url) {
+      requestDismiss(as: .storeReview(redirected: true, data: data))
+    } else if let url = fallback, NSWorkspace.shared.open(url) {
+      requestDismiss(as: .storeReview(redirected: true, data: data))
+    } else {
+      Logger.shared.debug("Failed to open App Store on macOS")
+      requestDismiss(as: .storeReview(redirected: false, data: data))
+    }
+    #else
+    // Unsupported platform
+    Logger.shared.debug("App Store redirect unsupported on this platform")
+    requestDismiss(as: .storeReview(redirected: false, data: data))
+    #endif
   }
 
   /// Programmatically dismisses the on-screen keyboard.

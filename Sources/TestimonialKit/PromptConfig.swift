@@ -130,11 +130,11 @@ public struct PromptConfig: @unchecked Sendable {
     /// Creates `CommentStrings` with optional custom values.
     /// - Parameters: Titles, subtitles, placeholders, and button titles.
     public init(
-      title: String = "Leave a comment",
-      subtitle: String = "We value your honest opinion.",
-      placeholder: String = "Type your comment here...",
-      submitButtonTitle: String = "Submit",
-      cancelButtonTitle: String = "Maybe later"
+      title: String = "Got a moment to share your thoughts?",
+      subtitle: String = "We read every message and truly value your input.",
+      placeholder: String = "What could we improve or fix?",
+      submitButtonTitle: String = "Send Feedback",
+      cancelButtonTitle: String = "Skip for now"
     ) {
       self.title = title
       self.subtitle = subtitle
@@ -158,10 +158,10 @@ public struct PromptConfig: @unchecked Sendable {
     /// Creates `StoreReviewStrings` with optional custom values.
     /// - Parameters: Titles, messages, and button titles.
     public init(
-      title: String = "Do you enjoy our app?",
-      message: String = "We would love to hear your thoughts!",
-      submitButtonTitle: String = "Ok, sure",
-      cancelButtonTitle: String = "No thanks"
+      title: String = "Loving the app so far?",
+      message: String = "If you're enjoying it, a quick review would mean the world to us. It helps others discover the app too!",
+      submitButtonTitle: String = "Leave a Review",
+      cancelButtonTitle: String = "Maybe Later"
     ) {
       self.title = title
       self.message = message
