@@ -16,8 +16,8 @@ TestimonialKit is an intelligent SDK that helps you collect feedback and increas
 [![License](https://img.shields.io/badge/License-MIT-yellow)]()
 
 <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-  <img src="demo.gif" alt="Demo app animation" width="300"/>
-  <img src="negative_demo.gif" alt="Demo app animation" width="300"/>
+  <img src="review_demo.gif" alt="Demo app review animation" width="300"/>
+  <img src="feedback_demo.gif" alt="Demo app feedback animation" width="300"/>
 </div>
 
 ## Features
