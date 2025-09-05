@@ -11,9 +11,11 @@ import AppKit
 /// Represents the different UI states in the feedback prompt flow.
 /// Used by `PromptViewModel` to drive the view based on backend events and user actions.
 enum PromptViewState: Equatable, Sendable {
+  /// State where the prompt type is not yet defined
+  case iddle
   /// State where the user is prompted to leave a text comment, optionally with a rating.
   /// - Parameter data: The feedback log data from the backend.
-  case comment(data: FeedbackLogResponse?)
+  case comment(data: PromptEligibilityResponse)
   /// State showing a thank-you message after feedback submission.
   /// - Parameter data: Optional feedback data if available.
   case thankYou(data: FeedbackLogResponse?)
@@ -21,7 +23,7 @@ enum PromptViewState: Equatable, Sendable {
   /// - Parameters:
   ///   - redirected: Indicates whether the user was redirected successfully.
   ///   - data: Feedback log data from the backend.
-  case storeReview(redirected: Bool, data: FeedbackLogResponse?)
+  case storeReview(redirected: Bool, data: PromptEligibilityResponse)
 }
 
 /// View model driving the state and actions of the feedback prompt UI.
@@ -42,7 +44,7 @@ class PromptViewModel: ObservableObject {
   /// The optional comment text provided by the user.
   @Published var comment: String = ""
   /// Current UI state of the prompt.
-  @Published var state: PromptViewState = .storeReview(redirected: false, data: nil)
+  @Published var state: PromptViewState = .iddle
   /// Indicates whether a network request or action is in progress.
   @Published var isLoading = false
 
@@ -71,15 +73,12 @@ class PromptViewModel: ObservableObject {
 
         /// Handle a rating event: determine next state based on positivity, comment request, and App Store redirect settings.
         switch event {
-        case .rating(let data):
-          setStateDeferred(.thankYou(data: nil))
-
         /// Handle a comment event: determine next state similarly, possibly showing store review or thank-you.
         case .comment(let data):
           setStateDeferred(.thankYou(data: data))
 
         /// Handle an error event: go directly to thank-you with no feedback data.
-        case .error:
+        default:
           setStateDeferred(.thankYou(data: nil))
         }
 
@@ -97,6 +96,8 @@ class PromptViewModel: ObservableObject {
       redirectToAppStoreReview(data: data)
     case .thankYou(let data):
       requestDismiss(as: .thankYou(data: data))
+    default:
+      break
     }
   }
 
@@ -113,7 +114,7 @@ class PromptViewModel: ObservableObject {
   /// Handles dismissal logic depending on the current state.
   func handleDismiss() {
     if case .comment(let data) = state {
-      setStateDeferred(.thankYou(data: data))
+      setStateDeferred(.thankYou(data: .init(message: "", eventId: data.eventId, appstoreId: data.appstoreId, bundleId: data.bundleId, isAppReleased: data.isAppReleased)))
     } else {
       requestDismiss(as: state)
     }
@@ -128,8 +129,8 @@ class PromptViewModel: ObservableObject {
   }
 
   /// Attempts to open the App Store review page for the app using the provided feedback data.
-  func redirectToAppStoreReview(data: FeedbackLogResponse?) {
-    guard let data, data.isAppReleased else {
+  func redirectToAppStoreReview(data: PromptEligibilityResponse) {
+    guard data.isAppReleased else {
       Logger.shared.debug("App is not released to the store so cannot redirect to App Store review")
       requestDismiss(as: .storeReview(redirected: false, data: data))
       return

@@ -278,7 +278,8 @@ actor PromptManager: PromptManagerProtocol {
     }
 
     let req = apiClient.sendPromptEvent(
-      type: .promptShown,
+      eventType: .promptShown,
+      promptType: currentEligibility.type ?? .review,
       previousEventId: currentEligibility.eventId,
       feedbackEventId: nil,
       metadata: promptMetadata
@@ -299,7 +300,8 @@ actor PromptManager: PromptManagerProtocol {
     }
 
     let req = apiClient.sendPromptEvent(
-      type: .promptDismissed,
+      eventType: .promptDismissed,
+      promptType: currentPromptEvent.type ?? .review,
       previousEventId: currentPromptEvent.eventId,
       feedbackEventId: nil,
       metadata: promptMetadata
@@ -315,7 +317,8 @@ actor PromptManager: PromptManagerProtocol {
     guard let currentFeedbackResponse, let currentPromptEvent, feedbackEventRegistered else { return }
 
     let req = apiClient.sendPromptEvent(
-      type: .promptDismissedWithResult,
+      eventType: .promptDismissedWithResult,
+      promptType: currentPromptEvent.type ?? .review,
       previousEventId: currentPromptEvent.eventId,
       feedbackEventId: currentFeedbackResponse.eventId,
       metadata: promptMetadata
@@ -333,7 +336,8 @@ actor PromptManager: PromptManagerProtocol {
     guard let currentPromptEvent else { return }
 
     let req = apiClient.sendPromptEvent(
-      type: .redirectedToStore,
+      eventType: .redirectedToStore,
+      promptType: currentPromptEvent.type ?? .review,
       previousEventId: currentPromptEvent.eventId,
       feedbackEventId: nil,
       metadata: promptMetadata
@@ -349,7 +353,8 @@ actor PromptManager: PromptManagerProtocol {
     guard let currentPromptEvent else { return }
 
     let req = apiClient.sendPromptEvent(
-      type: .storeReviewSkipped,
+      eventType: .storeReviewSkipped,
+      promptType: currentPromptEvent.type ?? .review,
       previousEventId: currentPromptEvent.eventId,
       feedbackEventId: nil,
       metadata: promptMetadata
@@ -429,6 +434,11 @@ actor PromptManager: PromptManagerProtocol {
   /// Presents the prompt modally from the top-most view controller on the current platform.
   /// On iOS it uses a sheet; on macOS it presents as a sheet from the top-most NSViewController.
   func showPrompt(of type: PromptType) async {
+    guard let currentEligibility else {
+      Logger.shared.warning("Prompt eligibility is not checked")
+      return
+    }
+    
     guard promptState == .eligible else {
       Logger.shared.warning("Prompt state is not eligible")
       return
@@ -448,7 +458,7 @@ actor PromptManager: PromptManagerProtocol {
 
     promptState = .showing
     await MainActor.run { [currentPromptConfig] in
-      let swiftUIView = PromptView(config: currentPromptConfig, type: type)
+      let swiftUIView = PromptView(config: currentPromptConfig, eligibilityData: currentEligibility)
       let hostingVC = PromptViewController(rootView: swiftUIView)
 
       #if canImport(UIKit)
