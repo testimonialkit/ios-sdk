@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>TestimonialKit  Reference</title>
+    <link rel="stylesheet" type="text/css" href="css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="css/highlight.css" />
+    <meta charset='utf-8'>
+    <script src="js/jquery.min.js" defer></script>
+    <script src="js/jazzy.js" defer></script>
+    
+    <script src="js/lunr.min.js" defer></script>
+    <script src="js/typeahead.jquery.js" defer></script>
+    <script src="js/jazzy.search.js" defer></script>
+  </head>
+  <body>
+    <a title="TestimonialKit  Reference"></a>
+    <header>
+      <div class="content-wrapper">
+        <p><a href="index.html">TestimonialKit 1.0.0 Docs</a> (87% documented)</p>
+        <p class="header-right"><a href="https://github.com/testimonialkit/ios-sdk"><img src="img/gh.png" alt="GitHub"/>View on GitHub</a></p>
+        <div class="header-right">
+          <form role="search" action="search.json">
+            <input type="text" placeholder="Search documentation" data-typeahead>
+          </form>
+        </div>
+      </div>
+    </header>
+    <div class="content-wrapper">
+      <p id="breadcrumbs">
+        <a href="index.html">TestimonialKit</a>
+      </p>
+    </div>
+    <div class="content-wrapper">
+      <nav class="sidebar">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a href="Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="Classes/TestimonialKit.html">TestimonialKit</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="Enums/AppEnvironment.html">AppEnvironment</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Enums/AppEventType.html">AppEventType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Enums/LogLevel.html">LogLevel</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Enums/PromptResult.html">PromptResult</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="Structs/PromptConfig.html">PromptConfig</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PromptConfig/TextField.html">– TextField</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PromptConfig/Button.html">– Button</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PromptConfig/RatingStrings.html">– RatingStrings</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PromptConfig/CommentStrings.html">– CommentStrings</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PromptConfig/StoreReviewStrings.html">– StoreReviewStrings</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Structs/PromptConfig/ThankYouStrings.html">– ThankYouStrings</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+        <section>
+          <section class="section">
+            
+            <h1 id='testimonialkit-ios-sdk' class='heading'>TestimonialKit iOS SDK</h1>
+
+<aside>
+🚀 Boost your App Store ratings by smartly prompting your happiest users
+
+</aside>
+<h2 id='overview' class='heading'>Overview</h2>
+
+<p>TestimonialKit is an intelligent SDK that helps you collect feedback and increase your App Store ratings by identifying your most satisfied users and prompting them at the right moment.</p>
+<h2 id='features' class='heading'>Features</h2>
+
+<ul>
+<li>Smart prompting based on user satisfaction levels</li>
+<li>Customizable prompt UI to match your app&rsquo;s design</li>
+<li>Multi-step flow: rating → comment → App Store review</li>
+<li>Complete event tracking system</li>
+<li>Detailed analytics dashboard</li>
+<li>Offline support with automatic request retrying</li>
+<li>Built-in logging system with configurable verbosity</li>
+</ul>
+<h2 id='installation' class='heading'>Installation</h2>
+<h3 id='swift-package-manager' class='heading'>Swift Package Manager</h3>
+
+<p>Add the following to your Package.swift file:</p>
+<pre class="highlight swift"><code><span class="nv">dependencies</span><span class="p">:</span> <span class="p">[</span>
+    <span class="o">.</span><span class="nf">package</span><span class="p">(</span><span class="nv">url</span><span class="p">:</span> <span class="s">"https://github.com/testimonialkit/ios-sdk.git"</span><span class="p">,</span> <span class="nv">from</span><span class="p">:</span> <span class="s">"1.0.0"</span><span class="p">)</span>
+<span class="p">]</span>
+
+</code></pre>
+<h3 id='cocoapods' class='heading'>CocoaPods</h3>
+
+<p>Add the following to your Podfile:</p>
+<pre class="highlight ruby"><code><span class="n">pod</span> <span class="s1">'TestimonialKit'</span>
+
+</code></pre>
+<h2 id='requirements' class='heading'>Requirements</h2>
+
+<ul>
+<li>iOS 16.0+</li>
+<li>macOS 13.0+</li>
+<li>Swift 5.5+</li>
+<li>Xcode 13.0+</li>
+</ul>
+<h2 id='getting-started' class='heading'>Getting Started</h2>
+<h3 id='1-create-an-account' class='heading'>1. Create an account</h3>
+
+<p>Before integrating TestimonialKit, create an account at <a href="https://app.testimonialkit.dev">app.testimonialkit.dev</a> to obtain your API key.</p>
+<h3 id='2-initialize-the-sdk' class='heading'>2. Initialize the SDK</h3>
+
+<p>Add the following code to your AppDelegate or application startup:</p>
+<pre class="highlight swift"><code><span class="kd">import</span> <span class="kt">TestimonialKit</span>
+
+<span class="c1">// In your AppDelegate or App initialization</span>
+<span class="kd">func</span> <span class="nf">application</span><span class="p">(</span><span class="n">_</span> <span class="nv">application</span><span class="p">:</span> <span class="kt">UIApplication</span><span class="p">,</span> <span class="n">didFinishLaunchingWithOptions</span> <span class="nv">launchOptions</span><span class="p">:</span> <span class="p">[</span><span class="kt">UIApplication</span><span class="o">.</span><span class="kt">LaunchOptionsKey</span><span class="p">:</span> <span class="kt">Any</span><span class="p">]?)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span> <span class="p">{</span>
+    <span class="c1">// Initialize TestimonialKit with your API key</span>
+    <span class="kt">TestimonialKit</span><span class="o">.</span><span class="nf">setup</span><span class="p">(</span><span class="nv">withKey</span><span class="p">:</span> <span class="s">"YOUR_API_KEY"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">true</span>
+<span class="p">}</span>
+
+</code></pre>
+<h3 id='3-track-user-events' class='heading'>3. Track user events</h3>
+
+<p>Track positive and negative events throughout your app to help TestimonialKit identify the right moment to prompt users:</p>
+<pre class="highlight swift"><code><span class="c1">// Track a positive event</span>
+<span class="kt">TestimonialKit</span><span class="o">.</span><span class="nf">trackEvent</span><span class="p">(</span>
+    <span class="nv">name</span><span class="p">:</span> <span class="s">"completed_purchase"</span><span class="p">,</span>
+    <span class="nv">score</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="nv">type</span><span class="p">:</span> <span class="o">.</span><span class="n">positive</span><span class="p">,</span>
+    <span class="nv">metadata</span><span class="p">:</span> <span class="p">[</span><span class="s">"item_id"</span><span class="p">:</span> <span class="s">"123"</span><span class="p">,</span> <span class="s">"price"</span><span class="p">:</span> <span class="s">"9.99"</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="c1">// Track a negative event</span>
+<span class="kt">TestimonialKit</span><span class="o">.</span><span class="nf">trackEvent</span><span class="p">(</span>
+    <span class="nv">name</span><span class="p">:</span> <span class="s">"cancellation"</span><span class="p">,</span>
+    <span class="nv">score</span><span class="p">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span>
+    <span class="nv">type</span><span class="p">:</span> <span class="o">.</span><span class="n">negative</span><span class="p">,</span>
+    <span class="nv">metadata</span><span class="p">:</span> <span class="p">[</span><span class="s">"reason"</span><span class="p">:</span> <span class="s">"too_expensive"</span><span class="p">]</span>
+<span class="p">)</span>
+
+</code></pre>
+<h3 id='4-prompt-at-the-right-moment' class='heading'>4. Prompt at the right moment</h3>
+
+<p>Call the <code>promptIfPossible</code> method when you think it might be a good time to show the feedback prompt (e.g., after a successful action, at the end of a session):</p>
+<pre class="highlight swift"><code><span class="kt">TestimonialKit</span><span class="o">.</span><span class="n">promptIfPossible</span> <span class="p">{</span> <span class="n">result</span> <span class="k">in</span>
+    <span class="k">switch</span> <span class="n">result</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="o">.</span><span class="nv">completed</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="s">"User completed the feedback flow with a comment"</span><span class="p">)</span>
+    <span class="k">case</span> <span class="o">.</span><span class="nv">completedWithoutComment</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="s">"User submitted a rating without a comment"</span><span class="p">)</span>
+    <span class="k">case</span> <span class="o">.</span><span class="nv">redirectedToStore</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="s">"User was redirected to the App Store"</span><span class="p">)</span>
+    <span class="k">case</span> <span class="o">.</span><span class="nv">storeReviewSkipped</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="s">"User provided feedback but skipped App Store review"</span><span class="p">)</span>
+    <span class="k">case</span> <span class="o">.</span><span class="nv">cancelled</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="s">"User cancelled the feedback flow"</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+</code></pre>
+
+<p>TestimonialKit will automatically determine if the user should be prompted based on their event history and previous prompt interactions.</p>
+<h2 id='customization' class='heading'>Customization</h2>
+
+<p>You can customize the appearance and text of the prompts to match your app&rsquo;s design:</p>
+<pre class="highlight swift"><code><span class="k">let</span> <span class="nv">customConfig</span> <span class="o">=</span> <span class="kt">PromptConfig</span><span class="p">(</span>
+    <span class="nv">ratingStrings</span><span class="p">:</span> <span class="o">.</span><span class="nf">init</span><span class="p">(</span>
+        <span class="nv">title</span><span class="p">:</span> <span class="s">"How would you rate our app?"</span><span class="p">,</span>
+        <span class="nv">subtitle</span><span class="p">:</span> <span class="s">"Your feedback helps us improve!"</span><span class="p">,</span>
+        <span class="nv">starLabels</span><span class="p">:</span> <span class="p">[</span><span class="s">"Terrible"</span><span class="p">,</span> <span class="s">"Bad"</span><span class="p">,</span> <span class="s">"Okay"</span><span class="p">,</span> <span class="s">"Good"</span><span class="p">,</span> <span class="s">"Amazing"</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="nv">commentStrings</span><span class="p">:</span> <span class="o">.</span><span class="nf">init</span><span class="p">(</span>
+        <span class="nv">title</span><span class="p">:</span> <span class="s">"Tell us more"</span><span class="p">,</span>
+        <span class="nv">placeholder</span><span class="p">:</span> <span class="s">"What do you like or dislike about our app?"</span>
+    <span class="p">),</span>
+    <span class="nv">tintColor</span><span class="p">:</span> <span class="o">.</span><span class="n">blue</span><span class="p">,</span>
+    <span class="nv">tintColorDark</span><span class="p">:</span> <span class="o">.</span><span class="n">cyan</span>
+<span class="p">)</span>
+
+<span class="kt">TestimonialKit</span><span class="o">.</span><span class="nf">promptIfPossible</span><span class="p">(</span><span class="nv">promptConfig</span><span class="p">:</span> <span class="n">customConfig</span><span class="p">)</span> <span class="p">{</span> <span class="n">result</span> <span class="k">in</span>
+    <span class="c1">// Handle result</span>
+<span class="p">}</span>
+
+</code></pre>
+<h3 id='customizable-components' class='heading'>Customizable Components</h3>
+
+<p>TestimonialKit provides extensive customization options for:</p>
+
+<ul>
+<li>Rating prompt (title, subtitle, star labels, button texts)</li>
+<li>Comment form (title, subtitle, placeholder, button texts)</li>
+<li>Store review prompt (title, message, button texts)</li>
+<li>Thank you screen (title, message, button text)</li>
+<li>Visual styling (colors, button shapes, text field appearance)</li>
+</ul>
+<h2 id='advanced-configuration' class='heading'>Advanced Configuration</h2>
+<h3 id='log-levels' class='heading'>Log Levels</h3>
+
+<p>Control the verbosity of TestimonialKit logs:</p>
+<pre class="highlight swift"><code><span class="c1">// Set log level during initialization</span>
+<span class="kt">TestimonialKit</span><span class="o">.</span><span class="nf">setup</span><span class="p">(</span><span class="nv">withKey</span><span class="p">:</span> <span class="s">"YOUR_API_KEY"</span><span class="p">,</span> <span class="nv">logLevel</span><span class="p">:</span> <span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+
+<span class="c1">// Available log levels:</span>
+<span class="c1">// .verbose - All logs</span>
+<span class="c1">// .debug - Debug and higher</span>
+<span class="c1">// .info - Info and higher (default)</span>
+<span class="c1">// .warning - Warnings and errors only</span>
+<span class="c1">// .error - Only errors</span>
+<span class="c1">// .none - No logs</span>
+
+</code></pre>
+<h3 id='prompt-metadata' class='heading'>Prompt Metadata</h3>
+
+<p>Include additional context when prompting users:</p>
+<pre class="highlight swift"><code><span class="kt">TestimonialKit</span><span class="o">.</span><span class="nf">promptIfPossible</span><span class="p">(</span>
+    <span class="nv">metadata</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">"current_screen"</span><span class="p">:</span> <span class="s">"checkout_complete"</span><span class="p">,</span>
+        <span class="s">"user_type"</span><span class="p">:</span> <span class="s">"premium"</span>
+    <span class="p">],</span>
+    <span class="nv">completion</span><span class="p">:</span> <span class="p">{</span> <span class="n">result</span> <span class="k">in</span>
+        <span class="c1">// Handle result</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+</code></pre>
+<h2 id='architecture' class='heading'>Architecture</h2>
+
+<p>TestimonialKit is built with a modern, resilient architecture:</p>
+
+<ul>
+<li>Leverages Swift Concurrency (async/await) for efficient background operations</li>
+<li>Uses the actor model for thread safety</li>
+<li>Implements a persistent request queue for offline support</li>
+<li>Provides robust error handling and automatic retries</li>
+</ul>
+<h2 id='best-practices' class='heading'>Best Practices</h2>
+
+<ul>
+<li>Track meaningful events that indicate user satisfaction or frustration</li>
+<li>Use positive scores (1-10) for positive events and negative scores (-10 to -1) for negative events</li>
+<li>Call <code>promptIfPossible</code> at natural break points in your app flow</li>
+<li>Customize the prompt UI to match your app&rsquo;s design language</li>
+<li>Review analytics in the TestimonialKit dashboard to optimize your prompting strategy</li>
+</ul>
+<h2 id='license' class='heading'>License</h2>
+
+<p>TestimonialKit is available under the MIT license. See the LICENSE file for more info.</p>
+<h2 id='support' class='heading'>Support</h2>
+
+<p>For issues or feature requests, please visit our <a href="https://github.com/testimonialkit/ios-sdk/issues">GitHub issues page</a> or contact support at <code>support@testimonialkit.dev</code>.</p>
+
+          </section>
+        </section>
+        <section id="footer">
+          <p>&copy; 2025 <a class="link" href="https://testimonialkit.dev" target="_blank" rel="external noopener">Eduard Albu</a>. All rights reserved. (Last updated: 2025-08-14)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.15.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</html>
