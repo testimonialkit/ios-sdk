@@ -54,7 +54,7 @@ pod 'TestimonialKit' // not implemented yet
 
 ## Requirements
 
-- iOS 16.0+
+- iOS 15.0+
 - macOS 13.0+
 - Swift 5.5+
 - Xcode 13.0+
