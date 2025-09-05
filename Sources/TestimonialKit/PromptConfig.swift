@@ -100,17 +100,25 @@ public struct PromptConfig: @unchecked Sendable {
     var variant: ButtonVariant
     /// Size preset for the button.
     var size: ButtonSize
+    /// Primary button foreground color in light mode
+    var foregroundColor: Color = .white
+    /// Primary button foreground color in dark mode
+    var foregroundColorDark: Color = .white
 
     /// Creates a `Button` style configuration.
-    /// - Parameters: Shape, variant, and size to use.
+    /// - Parameters: Shape, variant, size and foreground colors to use.
     public init(
       shape: ButtonShape = .rounded,
       variant: ButtonVariant = .filled,
-      size: ButtonSize = .custom(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16), .body)
+      size: ButtonSize = .custom(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16), .body),
+      foregroundColor: Color = .white,
+      foregroundColorDark: Color = .white
     ) {
       self.shape = shape
       self.variant = variant
       self.size = size
+      self.foregroundColor = foregroundColor
+      self.foregroundColorDark = foregroundColorDark
     }
   }
 
