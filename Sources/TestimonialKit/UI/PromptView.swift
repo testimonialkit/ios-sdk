@@ -9,7 +9,8 @@ import SwiftThemeKit
 struct PromptView: View {
   /// Prompt configuration containing localized strings, tint colors, and component styles.
   private let config: PromptConfig
-  private let type: PromptType
+  /// The information about eligibility status of the prompt
+  private let eligibilityData: PromptEligibilityResponse
   /// Theme instance for light mode, derived from `config` values.
   private let lightTheme: Theme
   /// Theme instance for dark mode, derived from `config` values.
@@ -22,9 +23,9 @@ struct PromptView: View {
   /// Creates a `PromptView` with a given configuration.
   /// - Parameter config: Prompt appearance and text configuration.
   /// Builds separate light and dark `Theme` instances from the provided config.
-  init(config: PromptConfig, type: PromptType) {
+  init(config: PromptConfig, eligibilityData: PromptEligibilityResponse) {
     self.config = config
-    self.type = type
+    self.eligibilityData = eligibilityData
     self.lightTheme = .defaultLight.copy(
       colors: .defaultLight.copy(
         primary: config.tintColorDark
@@ -73,6 +74,8 @@ struct PromptView: View {
           storeReviewView
         case .thankYou:
           thankYouView
+        case .iddle:
+          EmptyView()
         }
       }
       .showBranding(viewModel.showBranding)
@@ -84,7 +87,7 @@ struct PromptView: View {
       }
     }
     .onAppear {
-      self.viewModel.state = type == .feedback ? .comment(data: nil) : .storeReview(redirected: false, data: nil)
+      self.viewModel.state = eligibilityData.type == .feedback ? .comment(data: eligibilityData) : .storeReview(redirected: false, data: eligibilityData)
     }
   }
 

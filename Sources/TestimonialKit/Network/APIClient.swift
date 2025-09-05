@@ -31,7 +31,8 @@ protocol APIClientProtocol: AnyObject, Sendable {
   ///   - feedbackEventId: Optional ID of a feedback event related to this prompt.
   ///   - metadata: Optional key-value metadata to attach to the event.
   func sendPromptEvent(
-    type: PromptEventType,
+    eventType: PromptEventType,
+    promptType: PromptType,
     previousEventId: String,
     feedbackEventId: String?,
     metadata: [String: String]?
@@ -171,14 +172,16 @@ final class APIClient: APIClientProtocol {
   ///   - feedbackEventId: Optional ID of a feedback event related to this prompt.
   ///   - metadata: Optional key-value metadata to attach to the event.
   func sendPromptEvent(
-    type: PromptEventType,
+    eventType: PromptEventType,
+    promptType: PromptType,
     previousEventId: String,
     feedbackEventId: String? = nil,
     metadata: [String: String]? = nil
   ) -> QueuedRequest {
     var body: [String: Any] = [
       "userId": config.userId,
-      "status": type.rawValue,
+      "status": eventType.rawValue,
+      "type": promptType.rawValue,
       "previousEventId": previousEventId,
       "appVersion": config.appVersion
     ]
@@ -204,7 +207,8 @@ final class APIClient: APIClientProtocol {
       ],
       body: try? JSONSerialization.data(withJSONObject: body, options: []),
       metadata: [
-        "eventType": type.rawValue
+        "eventType": eventType.rawValue,
+        "promptType": promptType.rawValue
       ]
     )
   }
