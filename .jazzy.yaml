@@ -1,0 +1,11 @@
+module: TestimonialKit
+clean: true
+author: Eduard Albu
+author_url: https://testimonialkit.dev
+build_tool_arguments:
+  - -c
+  - release
+min_acl: public
+source_host: github
+source_host_url: https://github.com/testimonialkit/ios-sdk
+module_version: 1.0.0
