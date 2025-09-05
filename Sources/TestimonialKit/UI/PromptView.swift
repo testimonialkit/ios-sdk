@@ -28,7 +28,8 @@ struct PromptView: View {
     self.eligibilityData = eligibilityData
     self.lightTheme = .defaultLight.copy(
       colors: .defaultLight.copy(
-        primary: config.tintColorDark
+        primary: config.tintColor,
+        onPrimary: config.submitButton.foregroundColor
       ),
       buttons: .defaultLight.copy(
         shape: config.submitButton.shape,
@@ -44,7 +45,8 @@ struct PromptView: View {
 
     self.darkTheme = .defaultDark.copy(
       colors: .defaultDark.copy(
-        primary: config.tintColorDark
+        primary: config.tintColorDark,
+        onPrimary: config.submitButton.foregroundColorDark
       ),
       buttons: .defaultDark.copy(
         shape: config.submitButton.shape,
