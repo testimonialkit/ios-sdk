@@ -31,7 +31,7 @@ struct PromptCommentView: View {
         subtitle: strings.subtitle
       )
 
-      if #available(iOS 16.0, *) {
+      if #available(iOS 16.0, *), #available(macOS 13.0, *) {
         TextField(strings.placeholder, text: $comment, axis: .vertical)
           .applyThemeTextFieldStyle()
           .lineLimit(3...6)

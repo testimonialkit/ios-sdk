@@ -16,7 +16,12 @@ extension Container {
     self {
       /// Resolve host app identity and environment metadata.
       let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
-      let countryCode = Locale.current.region?.identifier ?? "unknown"
+      var countryCode: String = "unknown"
+      if #available(iOS 16, *) {
+        countryCode = Locale.current.region?.identifier ?? "unknown"
+      } else {
+        countryCode = Locale.current.regionCode ?? "unknown"
+      }
       let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
       let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
       let appVersion = "\(version) (\(build))"
