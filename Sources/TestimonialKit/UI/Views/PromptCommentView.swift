@@ -31,9 +31,14 @@ struct PromptCommentView: View {
         subtitle: strings.subtitle
       )
 
-      TextField(strings.placeholder, text: $comment, axis: .vertical)
-        .applyThemeTextFieldStyle()
-        .lineLimit(3...6)
+      if #available(iOS 16.0, *) {
+        TextField(strings.placeholder, text: $comment, axis: .vertical)
+          .applyThemeTextFieldStyle()
+          .lineLimit(3...6)
+      } else {
+        ThemedTextEditor(text: $comment, placeholder: strings.placeholder, minHeight: 100, maxHeight: 400)
+          .applyThemeTextEditorStyle()
+      }
 
       VStack(spacing: 16) {
         /// Submit button that invokes `onSubmit` when tapped.
