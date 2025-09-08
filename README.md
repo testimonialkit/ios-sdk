@@ -91,7 +91,6 @@ Track positive and negative events throughout your app to help TestimonialKit id
 TestimonialKit.trackEvent(
     name: "completed_purchase",
     score: 10,
-    type: .positive,
     metadata: ["item_id": "123", "price": "9.99"]
 )
 
@@ -99,7 +98,6 @@ TestimonialKit.trackEvent(
 TestimonialKit.trackEvent(
     name: "cancellation",
     score: -5,
-    type: .negative,
     metadata: ["reason": "too_expensive"]
 )
 
