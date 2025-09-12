@@ -318,8 +318,8 @@ actor PromptManager: PromptManagerProtocol {
 
     let req = apiClient.sendPromptEvent(
       eventType: .promptDismissedWithResult,
-      promptType: currentPromptEvent.type ?? .review,
-      previousEventId: currentPromptEvent.eventId,
+      promptType: currentFeedbackResponse?.type ?? currentPromptEvent.type ?? .review,
+      previousEventId: currentFeedbackResponse?.promptEventId ?? currentPromptEvent.eventId,
       feedbackEventId: currentFeedbackResponse?.eventId,
       metadata: promptMetadata
     )
@@ -494,7 +494,7 @@ actor PromptManager: PromptManagerProtocol {
         await logStoreReviewSkipped()
       }
     default:
-      Logger.shared.debug("Ignored PromptViewState: \(state)")
+      Logger.shared.verbose("Ignored PromptViewState: \(state)")
     }
 
     await logPromptDismissed()
