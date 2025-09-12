@@ -294,7 +294,7 @@ actor PromptManager: PromptManagerProtocol {
   func logPromptDismissed() async {
     guard let currentPromptEvent else { return }
 
-    if currentFeedbackResponse != nil || feedbackEventRegistered {
+    if currentFeedbackResponse != nil || feedbackEventRegistered || currentPromptEvent.status == .redirectedToStore {
       await logPromptDismissedWithResult()
       return
     }
@@ -314,13 +314,13 @@ actor PromptManager: PromptManagerProtocol {
 
   /// Enqueues a `promptDismissedWithResult` event tying the dismissal to the feedback event.
   func logPromptDismissedWithResult() async {
-    guard let currentFeedbackResponse, let currentPromptEvent, feedbackEventRegistered else { return }
+    guard let currentPromptEvent, feedbackEventRegistered else { return }
 
     let req = apiClient.sendPromptEvent(
       eventType: .promptDismissedWithResult,
       promptType: currentPromptEvent.type ?? .review,
       previousEventId: currentPromptEvent.eventId,
-      feedbackEventId: currentFeedbackResponse.eventId,
+      feedbackEventId: currentFeedbackResponse?.eventId,
       metadata: promptMetadata
     )
 
@@ -346,6 +346,8 @@ actor PromptManager: PromptManagerProtocol {
     let logMessage = "About to enqueue on \(requestQueue.debugId) event: \(PromptEventType.redirectedToStore)"
     Logger.shared.verbose(logMessage)
     await requestQueue.enqueue(req)
+
+    feedbackEventRegistered = true
   }
 
   /// Enqueues a `storeReviewSkipped` event when the user declines the App Store flow.
