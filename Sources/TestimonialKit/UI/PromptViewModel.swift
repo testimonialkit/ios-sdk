@@ -114,7 +114,7 @@ class PromptViewModel: ObservableObject {
   /// Handles dismissal logic depending on the current state.
   func handleDismiss() {
     if case .comment(let data) = state {
-      setStateDeferred(.thankYou(data: .init(message: "", eventId: data.eventId, appstoreId: data.appstoreId, bundleId: data.bundleId, isAppReleased: data.isAppReleased)))
+      setStateDeferred(.thankYou(data: .init()))
     } else {
       requestDismiss(as: state)
     }
