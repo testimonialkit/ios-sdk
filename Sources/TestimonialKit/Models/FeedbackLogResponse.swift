@@ -15,4 +15,24 @@ struct FeedbackLogResponse: Decodable, Equatable, Sendable {
   let bundleId: String
   /// Indicates whether the app is released to the store
   let isAppReleased: Bool
+  /// The unique identifier of the prompt that triggered the feedback
+  let promptEventId: String
+  /// The type of the prompt from which the event was logged
+  let type: PromptType
+
+  init(message: String = "",
+       eventId: String = "",
+       appstoreId: String? = nil,
+       bundleId: String = "",
+       isAppReleased: Bool = false,
+       promptEventId: String = "",
+       type: PromptType = .feedback) {
+    self.message = message
+    self.eventId = eventId
+    self.appstoreId = appstoreId
+    self.bundleId = bundleId
+    self.isAppReleased = isAppReleased
+    self.promptEventId = promptEventId
+    self.type = type
+  }
 }
